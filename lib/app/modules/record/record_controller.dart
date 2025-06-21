@@ -4,7 +4,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:record/record.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../../routes/app_pages.dart';
@@ -17,8 +16,6 @@ class RecordController extends GetxController {
   final isPaused = false.obs;
   final recordingTime = '00:00'.obs;
   final notes = <Map<String, String>>[].obs;
-  final isTranscribing = false.obs;
-  final transcriptionText = ''.obs;
   
   Timer? _timer;
   int _seconds = 0;
@@ -28,7 +25,6 @@ class RecordController extends GetxController {
   final AudioRecorder _recorder = AudioRecorder();
   String? _recordingPath;
   StreamSubscription<RecordState>? _recordStateSubscription;
-  Timer? _transcriptionTimer;
   
   @override
   void onInit() {
@@ -41,7 +37,6 @@ class RecordController extends GetxController {
   void onClose() {
     titleController.dispose();
     _timer?.cancel();
-    _transcriptionTimer?.cancel();
     _recorder.dispose();
     _recordStateSubscription?.cancel();
     super.onClose();
@@ -118,9 +113,6 @@ class RecordController extends GetxController {
       isRecording.value = true;
       _startTimer();
       
-      // Periodically transcribe audio chunks
-      _startPeriodicTranscription();
-      
     } catch (e) {
       Get.snackbar(
         'Recording Error',
@@ -132,82 +124,6 @@ class RecordController extends GetxController {
     }
   }
   
-  void _startPeriodicTranscription() {
-    // Transcribe every 10 seconds for more real-time results
-    _transcriptionTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
-      if (!isRecording.value || isPaused.value) {
-        timer.cancel();
-        return;
-      }
-      _transcribeCurrentRecording();
-    });
-  }
-  
-  Future<void> _transcribeCurrentRecording() async {
-    if (_recordingPath == null || !isRecording.value) return;
-    
-    try {
-      // Don't start new transcription if one is already in progress
-      if (isTranscribing.value) return;
-      
-      isTranscribing.value = true;
-      
-      // Stop recording temporarily to read the file
-      final currentPath = await _recorder.stop();
-      
-      if (currentPath != null) {
-        // Save the current path
-        _recordingPath = currentPath;
-        
-        // Read the current recording file
-        final file = File(currentPath);
-        if (await file.exists()) {
-          final audioData = await file.readAsBytes();
-          
-          // Transcribe using OpenAI Whisper
-          final transcription = await OpenAIService.transcribeAudio(
-            audioData: audioData,
-            language: 'en',
-          );
-          
-          if (transcription.isNotEmpty) {
-            // Append new transcription to existing text
-            if (transcriptionText.value.isNotEmpty) {
-              transcriptionText.value += ' ';
-            }
-            transcriptionText.value += transcription;
-          }
-          
-          // Keep the original file for final save
-          // Don't delete it here
-        }
-        
-        // Resume recording with a new file for next chunk
-        final newPath = '${(await getTemporaryDirectory()).path}/recording_${DateTime.now().millisecondsSinceEpoch}.wav';
-        await _recorder.start(
-          RecordConfig(
-            encoder: AudioEncoder.wav,
-            bitRate: 128000,
-            sampleRate: 16000,
-            numChannels: 1,
-          ),
-          path: newPath,
-        );
-      }
-    } catch (e) {
-      if (Get.isLogEnable) {
-        Get.log('Error transcribing audio: $e');
-      }
-      Get.snackbar(
-        'Transcription Error',
-        'Failed to transcribe audio. Please check your internet connection.',
-        snackPosition: SnackPosition.BOTTOM,
-        duration: const Duration(seconds: 3),
-      );
-    } finally {
-      isTranscribing.value = false;
-    }
-  }
 
   void _showSaveDialog() {
     // Recording is already stopped at this point
@@ -278,26 +194,7 @@ class RecordController extends GetxController {
         barrierDismissible: false,
       );
       
-      // Final transcription if needed (recording already stopped)
-      if (transcriptionText.value.isEmpty && _recordingPath != null) {
-        // For final transcription, we need to read the already saved file
-        final file = File(_recordingPath!);
-        if (await file.exists()) {
-          final audioData = await file.readAsBytes();
-          try {
-            isTranscribing.value = true;
-            final transcription = await OpenAIService.transcribeAudio(
-              audioData: audioData,
-              language: 'en',
-            );
-            if (transcription.isNotEmpty) {
-              transcriptionText.value = transcription;
-            }
-          } finally {
-            isTranscribing.value = false;
-          }
-        }
-      }
+      // Recording already stopped, just save the file
       
       // Save audio file to permanent storage
       String permanentAudioPath = '';
@@ -312,7 +209,6 @@ class RecordController extends GetxController {
         'date': DateTime.now().toIso8601String(),
         'duration': recordingTime.value,
         'notes': notes.map((note) => Map<String, dynamic>.from(note)).toList(),
-        'transcription': transcriptionText.value,
         'audioPath': permanentAudioPath,
         'participants': '1',
       };
@@ -358,7 +254,6 @@ class RecordController extends GetxController {
       if (finalPath != null) {
         _recordingPath = finalPath;
       }
-      _transcriptionTimer?.cancel();
       isRecording.value = false;
     } catch (e) {
       if (Get.isLogEnable) {
@@ -384,14 +279,11 @@ class RecordController extends GetxController {
   void _resetRecording() {
     isRecording.value = false;
     isPaused.value = false;
-    isTranscribing.value = false;
     _timer?.cancel();
-    _transcriptionTimer?.cancel();
     _seconds = 0;
     recordingTime.value = '00:00';
     titleController.clear();
     notes.clear();
-    transcriptionText.value = '';
     _recordingPath = null;
   }
 

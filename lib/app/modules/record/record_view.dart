@@ -25,7 +25,7 @@ class RecordView extends GetView<RecordController> {
               // Transcription display area
               Expanded(
                 child: Obx(
-                  () => controller.isRecording.value || controller.transcriptionText.value.isNotEmpty
+                  () => controller.isRecording.value
                       ? Container(
                           width: double.infinity,
                           padding: const EdgeInsets.all(20),
@@ -66,21 +66,15 @@ class RecordView extends GetView<RecordController> {
                                       ],
                                     ),
                                   ),
-                                // Transcribed text display
-                                Obx(() => Text(
-                                  controller.transcriptionText.value.isEmpty 
-                                    ? (controller.isRecording.value 
-                                        ? 'Start speaking...' 
-                                        : 'Tap the microphone button to start recording')
-                                    : controller.transcriptionText.value,
+                                // Recording status
+                                Text(
+                                  'Recording in progress...',
                                   style: TextStyle(
                                     fontSize: 18,
                                     height: 1.5,
-                                    color: controller.transcriptionText.value.isEmpty 
-                                      ? Colors.grey[400]
-                                      : Colors.black87,
+                                    color: Colors.grey[600],
                                   ),
-                                )),
+                                ),
                                 // Display notes
                                 if (controller.notes.isNotEmpty) ...[
                                   const SizedBox(height: 24),
@@ -202,14 +196,6 @@ class RecordView extends GetView<RecordController> {
                                 icon: const Icon(Icons.note_add, size: 32),
                                 tooltip: 'Add Note',
                               ),
-                              // Clear text button
-                              IconButton(
-                                onPressed: () {
-                                  controller.transcriptionText.value = '';
-                                },
-                                icon: const Icon(Icons.clear, size: 32),
-                                tooltip: 'Clear Text',
-                              ),
                             ],
                           )
                         : const SizedBox.shrink(),
@@ -267,32 +253,6 @@ class RecordView extends GetView<RecordController> {
                       ),
                     )),
                     
-                    // Transcription status
-                    const SizedBox(height: 8),
-                    Obx(() => controller.isTranscribing.value
-                        ? Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Transcribing...',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                            ],
-                          )
-                        : const SizedBox.shrink(),
-                    ),
                   ],
                 ),
               ),
