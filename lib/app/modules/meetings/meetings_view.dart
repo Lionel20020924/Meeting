@@ -37,37 +37,57 @@ class MeetingsView extends GetView<MeetingsController> {
             }
             
             if (controller.meetings.isEmpty) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.meeting_room_outlined,
-                      size: 80,
-                      color: Colors.grey.shade400,
+              return Column(
+                children: [
+                  // Large empty space for future text display
+                  const Expanded(
+                    flex: 3,
+                    child: SizedBox(),
+                  ),
+                  // Small icon and text at the bottom third
+                  Expanded(
+                    flex: 1,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.meeting_room_outlined,
+                          size: 48,
+                          color: Colors.grey.shade400,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'No meetings yet',
+                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                color: Colors.grey.shade600,
+                              ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Tap below to start recording',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Colors.grey.shade500,
+                              ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'No meetings yet',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            color: Colors.grey.shade600,
-                          ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Start recording your first meeting',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Colors.grey.shade500,
-                          ),
-                    ),
-                    const SizedBox(height: 24),
-                    ElevatedButton.icon(
+                  ),
+                  // Compact recording button at the bottom
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(48, 16, 48, 32),
+                    child: ElevatedButton.icon(
                       onPressed: controller.startRecording,
-                      icon: const Icon(Icons.mic),
+                      icon: const Icon(Icons.mic, size: 20),
                       label: const Text('Start Recording'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 12,
+                        ),
+                      ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               );
             }
             

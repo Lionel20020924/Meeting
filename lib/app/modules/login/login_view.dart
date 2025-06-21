@@ -179,6 +179,19 @@ class LoginView extends GetView<LoginController> {
                     ),
                   ],
                 ),
+                const SizedBox(height: 16),
+                
+                // Quick login for debugging
+                TextButton(
+                  onPressed: controller.quickLogin,
+                  child: Text(
+                    'Quick Login (Debug)',
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),

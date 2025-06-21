@@ -97,4 +97,23 @@ class LoginController extends GetxController {
       isLoading.value = false;
     }
   }
+
+  void quickLogin() {
+    // Fill in test credentials
+    emailController.text = 'test@example.com';
+    passwordController.text = 'password123';
+    
+    // Show quick message
+    Get.snackbar(
+      'Debug Mode',
+      'Using test credentials',
+      snackPosition: SnackPosition.BOTTOM,
+      duration: const Duration(seconds: 1),
+    );
+    
+    // Perform login after a short delay
+    Future.delayed(const Duration(milliseconds: 500), () {
+      Get.offAllNamed(Routes.HOME);
+    });
+  }
 }

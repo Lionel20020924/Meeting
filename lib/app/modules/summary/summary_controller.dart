@@ -1,8 +1,10 @@
 import 'package:get/get.dart';
 
-import '../../routes/app_pages.dart';
+import '../meetings/meetings_controller.dart';
 
 class SummaryController extends GetxController {
+  late Map<String, dynamic> meetingData;
+  
   final keyPoints = <String>[
     'Discussed Q1 project roadmap',
     'Agreed on new feature priorities',
@@ -23,6 +25,13 @@ In a real application, this would contain the full transcription of the recorded
 
 The transcript would include timestamps and speaker identification for better context and navigation.''';
 
+  @override
+  void onInit() {
+    super.onInit();
+    // Get the meeting data passed from the recording page
+    meetingData = Get.arguments ?? {};
+  }
+
   void shareSummary() {
     // TODO: Implement share functionality
     Get.snackbar(
@@ -33,14 +42,27 @@ The transcript would include timestamps and speaker identification for better co
   }
 
   void saveSummary() {
-    // TODO: Implement save functionality
+    // Create meeting data to save
+    final meeting = <String, String>{
+      'id': meetingData['recordingId']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
+      'title': meetingData['title']?.toString() ?? 'Untitled Meeting',
+      'date': DateTime.now().toString().substring(0, 16),
+      'duration': meetingData['duration']?.toString() ?? '00:00',
+      'participants': '1', // Default for recorded meetings
+    };
+    
+    // Add meeting to the meetings list
+    final meetingsController = Get.find<MeetingsController>();
+    meetingsController.addNewMeeting(meeting);
+    
+    // TODO: Implement actual save functionality (database, etc.)
     Get.snackbar(
       'Saved',
-      'Summary saved successfully',
+      'Meeting saved successfully',
       snackPosition: SnackPosition.BOTTOM,
     );
     
-    // Navigate back
-    Get.back();
+    // Navigate back to home (meetings list)
+    Get.until((route) => route.settings.name == '/home');
   }
 }

@@ -114,4 +114,10 @@ class MeetingsController extends GetxController {
   void startRecording() {
     Get.toNamed(Routes.RECORD);
   }
+
+  void addNewMeeting(Map<String, String> meeting) {
+    // Add the new meeting at the beginning of the list
+    meetings.insert(0, meeting);
+    // Persist the meeting (TODO: Save to database)
+  }
 }
