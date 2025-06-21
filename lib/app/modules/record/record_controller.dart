@@ -1,9 +1,14 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:record/record.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../../routes/app_pages.dart';
+import '../../services/openai_service.dart';
 
 class RecordController extends GetxController {
   final titleController = TextEditingController();
@@ -12,16 +17,60 @@ class RecordController extends GetxController {
   final isPaused = false.obs;
   final recordingTime = '00:00'.obs;
   final notes = <Map<String, String>>[].obs;
+  final isTranscribing = false.obs;
+  final transcriptionText = ''.obs;
   
   Timer? _timer;
   int _seconds = 0;
   bool _animationToggle = false;
   
+  // Audio recording components
+  final AudioRecorder _recorder = AudioRecorder();
+  String? _recordingPath;
+  StreamSubscription<RecordState>? _recordStateSubscription;
+  
+  @override
+  void onInit() {
+    super.onInit();
+    _initializeRecorder();
+    _listenToRecordingState();
+  }
+
   @override
   void onClose() {
     titleController.dispose();
     _timer?.cancel();
+    _recorder.dispose();
+    _recordStateSubscription?.cancel();
     super.onClose();
+  }
+  
+  Future<void> _initializeRecorder() async {
+    // Record package doesn't require explicit initialization
+    // Just check for permissions when starting recording
+  }
+  
+  void _listenToRecordingState() {
+    _recordStateSubscription = _recorder.onStateChanged().listen((RecordState state) {
+      if (Get.isLogEnable) {
+        Get.log('Recording state changed: $state');
+      }
+      
+      // Update UI based on state if needed
+      switch (state) {
+        case RecordState.record:
+          isRecording.value = true;
+          isPaused.value = false;
+          break;
+        case RecordState.pause:
+          isPaused.value = true;
+          break;
+        case RecordState.stop:
+          isRecording.value = false;
+          isPaused.value = false;
+          break;
+      }
+    });
   }
 
   void toggleRecording() {
@@ -33,10 +82,99 @@ class RecordController extends GetxController {
     }
   }
 
-  void startRecording() {
-    // TODO: Implement actual recording logic
-    isRecording.value = true;
-    _startTimer();
+  Future<void> startRecording() async {
+    try {
+      // Check and request microphone permission
+      final hasPermission = await _recorder.hasPermission();
+      if (!hasPermission) {
+        Get.snackbar(
+          'Permission Required',
+          'Microphone permission is required for recording',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        return;
+      }
+      
+      // Get temporary directory for recording
+      final tempDir = await getTemporaryDirectory();
+      _recordingPath = '${tempDir.path}/recording_${DateTime.now().millisecondsSinceEpoch}.wav';
+      
+      // Start recording
+      await _recorder.start(
+        RecordConfig(
+          encoder: AudioEncoder.wav,
+          bitRate: 128000,
+          sampleRate: 16000,
+          numChannels: 1,
+        ),
+        path: _recordingPath!,
+      );
+      
+      isRecording.value = true;
+      _startTimer();
+      
+      // Periodically transcribe audio chunks
+      _startPeriodicTranscription();
+      
+    } catch (e) {
+      Get.snackbar(
+        'Recording Error',
+        'Failed to start recording: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+  }
+  
+  void _startPeriodicTranscription() {
+    // Transcribe every 30 seconds
+    Timer.periodic(const Duration(seconds: 30), (timer) {
+      if (!isRecording.value || isPaused.value) {
+        timer.cancel();
+        return;
+      }
+      _transcribeCurrentRecording();
+    });
+  }
+  
+  Future<void> _transcribeCurrentRecording() async {
+    if (_recordingPath == null || !isRecording.value) return;
+    
+    try {
+      isTranscribing.value = true;
+      
+      // Read the current recording file
+      final file = File(_recordingPath!);
+      if (await file.exists()) {
+        final audioData = await file.readAsBytes();
+        
+        // Transcribe using OpenAI Whisper
+        final transcription = await OpenAIService.transcribeAudio(
+          audioData: audioData,
+          language: 'en',
+        );
+        
+        if (transcription.isNotEmpty) {
+          transcriptionText.value = transcription;
+          
+          // Add transcription as a note
+          notes.add({
+            'time': recordingTime.value,
+            'note': transcription,
+            'type': 'transcription',
+          });
+        }
+      }
+    } catch (e) {
+      if (Get.isLogEnable) {
+        Get.log('Error transcribing audio: $e');
+      }
+    } finally {
+      isTranscribing.value = false;
+    }
   }
 
   void _showSaveDialog() {
@@ -100,7 +238,7 @@ class RecordController extends GetxController {
     );
   }
 
-  void _saveRecording() {
+  Future<void> _saveRecording() async {
     if (titleController.text.isEmpty) {
       Get.snackbar(
         'Error',
@@ -112,7 +250,12 @@ class RecordController extends GetxController {
       return;
     }
     
-    // TODO: Implement stop recording logic
+    // Stop recording
+    await _stopRecording();
+    
+    // Final transcription
+    await _transcribeCurrentRecording();
+    
     Get.back(); // Close dialog
     
     // Navigate to summary page after recording
@@ -121,25 +264,49 @@ class RecordController extends GetxController {
       'title': titleController.text,
       'duration': recordingTime.value,
       'notes': notes.toList(),
+      'transcription': transcriptionText.value,
+      'audioPath': _recordingPath,
     });
     
     // Reset state
     _resetRecording();
   }
+  
+  Future<void> _stopRecording() async {
+    try {
+      await _recorder.stop();
+    } catch (e) {
+      if (Get.isLogEnable) {
+        Get.log('Error stopping recorder: $e');
+      }
+    }
+  }
 
-  void _discardRecording() {
-    // TODO: Implement discard recording logic
+  Future<void> _discardRecording() async {
+    await _stopRecording();
+    
+    // Delete recording file if exists
+    if (_recordingPath != null) {
+      final file = File(_recordingPath!);
+      if (await file.exists()) {
+        await file.delete();
+      }
+    }
+    
     _resetRecording();
   }
 
   void _resetRecording() {
     isRecording.value = false;
     isPaused.value = false;
+    isTranscribing.value = false;
     _timer?.cancel();
     _seconds = 0;
     recordingTime.value = '00:00';
     titleController.clear();
     notes.clear();
+    transcriptionText.value = '';
+    _recordingPath = null;
   }
 
   void exitRecording() {
@@ -181,12 +348,14 @@ class RecordController extends GetxController {
     }
   }
 
-  void togglePause() {
+  void togglePause() async {
     isPaused.value = !isPaused.value;
     if (isPaused.value) {
       _timer?.cancel();
+      await _recorder.pause();
     } else {
       _startTimer();
+      await _recorder.resume();
     }
   }
 

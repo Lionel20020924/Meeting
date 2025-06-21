@@ -37,6 +37,30 @@ dependencies:
   
   # GetX for state management, dependency injection and route management
   get: ^4.6.6
+  
+  # For environment variables
+  flutter_dotenv: ^5.1.0
+  
+  # For HTTP requests
+  http: ^1.2.2
+  
+  # For audio recording
+  record: ^5.1.2
+  
+  # For audio playback
+  audioplayers: ^6.1.0
+  
+  # For permissions
+  permission_handler: ^11.3.1
+  
+  # For WebSocket connections
+  web_socket_channel: ^3.0.1
+  
+  # For file paths
+  path_provider: ^2.1.5
+  
+  # For HTTP multipart requests
+  http_parser: ^4.0.2
 
 dev_dependencies:
   flutter_test:
@@ -59,6 +83,8 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+  assets:
+    - .env
 
   # To add assets to your application, add an assets section, like this:
   # assets:
