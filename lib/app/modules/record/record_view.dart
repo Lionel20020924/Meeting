@@ -11,172 +11,214 @@ class RecordView extends GetView<RecordController> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Record Meeting'),
+        centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: controller.exitRecording,
         ),
       ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
+      body: Stack(
+        children: [
+          // Main content area for transcribed text
+          Column(
             children: [
-              // Recording indicator
+              // Transcription display area
               Expanded(
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // Animated recording indicator
-                      Obx(
-                        () => TweenAnimationBuilder<double>(
-                          duration: const Duration(milliseconds: 1000),
-                          tween: Tween(
-                            begin: controller.isRecording.value ? 1.0 : 0.9,
-                            end: controller.isRecording.value ? 1.1 : 0.9,
-                          ),
-                          onEnd: () {
-                            if (controller.isRecording.value) {
-                              controller.toggleAnimation();
-                            }
-                          },
-                          builder: (context, scale, child) {
-                            return Transform.scale(
-                              scale: scale,
-                              child: Container(
-                                width: 200,
-                                height: 200,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: controller.isRecording.value
-                                      ? Colors.red.withOpacity(0.2)
-                                      : Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                                  boxShadow: controller.isRecording.value
-                                      ? [
-                                          BoxShadow(
-                                            color: Colors.red.withOpacity(0.3),
-                                            blurRadius: 30,
-                                            spreadRadius: 10,
+                child: Obx(
+                  () => controller.isRecording.value || controller.transcriptionText.value.isNotEmpty
+                      ? Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(20),
+                          child: SingleChildScrollView(
+                            reverse: true, // Auto-scroll to bottom as new text appears
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (controller.isRecording.value)
+                                  Container(
+                                    margin: const EdgeInsets.only(bottom: 16),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          width: 12,
+                                          height: 12,
+                                          decoration: BoxDecoration(
+                                            color: Colors.red,
+                                            shape: BoxShape.circle,
                                           ),
-                                        ]
-                                      : [],
-                                ),
-                                child: Icon(
-                                  controller.isRecording.value
-                                      ? Icons.mic
-                                      : Icons.mic_none,
-                                  size: 80,
-                                  color: controller.isRecording.value
-                                      ? Colors.red
-                                      : Theme.of(context).colorScheme.primary,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          'Recording...',
+                                          style: TextStyle(
+                                            color: Colors.red,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Obx(() => Text(
+                                          controller.recordingTime.value,
+                                          style: TextStyle(
+                                            color: Colors.grey[600],
+                                            fontSize: 14,
+                                          ),
+                                        )),
+                                      ],
+                                    ),
+                                  ),
+                                // Transcribed text display
+                                Obx(() => Text(
+                                  controller.transcriptionText.value.isEmpty 
+                                    ? (controller.isRecording.value 
+                                        ? 'Start speaking...' 
+                                        : 'Tap the microphone button to start recording')
+                                    : controller.transcriptionText.value,
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    height: 1.5,
+                                    color: controller.transcriptionText.value.isEmpty 
+                                      ? Colors.grey[400]
+                                      : Colors.black87,
+                                  ),
+                                )),
+                                // Display notes
+                                if (controller.notes.isNotEmpty) ...[
+                                  const SizedBox(height: 24),
+                                  const Divider(),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    'Notes',
+                                    style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: Theme.of(context).colorScheme.primary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  ...controller.notes.map((note) => Container(
+                                    margin: const EdgeInsets.only(bottom: 12),
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: Theme.of(context).colorScheme.surfaceVariant,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'At ${note['time']}',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey[600],
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          note['note'] ?? '',
+                                          style: const TextStyle(fontSize: 16),
+                                        ),
+                                      ],
+                                    ),
+                                  )).toList(),
+                                ],
+                              ],
+                            ),
+                          ),
+                        )
+                      : Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.mic_none,
+                                size: 80,
+                                color: Colors.grey[300],
+                              ),
+                              const SizedBox(height: 20),
+                              Text(
+                                'Ready to Record',
+                                style: TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.grey[600],
                                 ),
                               ),
-                            );
-                          },
+                              const SizedBox(height: 8),
+                              Text(
+                                'Tap the button below to start',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.grey[500],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 48),
-                      
-                      // Recording time
-                      Obx(
-                        () => controller.isRecording.value
-                            ? Column(
-                                children: [
-                                  Text(
-                                    controller.recordingTime.value,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .displaySmall
-                                        ?.copyWith(
-                                          fontWeight: FontWeight.bold,
-                                          fontFamily: 'monospace',
-                                        ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Container(
-                                        width: 8,
-                                        height: 8,
-                                        decoration: const BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          color: Colors.red,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        controller.isPaused.value
-                                            ? 'Paused'
-                                            : 'Recording',
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .bodyLarge
-                                            ?.copyWith(
-                                              color: Colors.red,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              )
-                            : Column(
-                                children: [
-                                  Text(
-                                    'Ready to record',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .headlineSmall
-                                        ?.copyWith(
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    'Tap the button below to start',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodyLarge
-                                        ?.copyWith(
-                                          color: Colors.grey.shade600,
-                                        ),
-                                  ),
-                                ],
-                              ),
-                      ),
-                    ],
-                  ),
                 ),
               ),
-              
-              // Control buttons
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  // Pause/Resume button
-                  Obx(
-                    () => controller.isRecording.value
-                        ? IconButton(
-                            onPressed: controller.togglePause,
-                            icon: Icon(
-                              controller.isPaused.value
-                                  ? Icons.play_arrow
-                                  : Icons.pause,
-                              size: 32,
-                            ),
-                            style: IconButton.styleFrom(
-                              backgroundColor:
-                                  Theme.of(context).colorScheme.surfaceVariant,
-                              padding: const EdgeInsets.all(16),
-                            ),
-                          )
-                        : const SizedBox(width: 64),
+            ],
+          ),
+          
+          // Bottom recording control
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).scaffoldBackgroundColor,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, -2),
                   ),
-                  
-                  // Main record button
-                  Obx(
-                    () => GestureDetector(
+                ],
+              ),
+              padding: const EdgeInsets.all(24),
+              child: SafeArea(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Action buttons when recording
+                    Obx(() => controller.isRecording.value
+                        ? Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              // Pause/Resume button
+                              IconButton(
+                                onPressed: controller.togglePause,
+                                icon: Obx(() => Icon(
+                                  controller.isPaused.value 
+                                    ? Icons.play_arrow 
+                                    : Icons.pause,
+                                  size: 32,
+                                )),
+                                tooltip: controller.isPaused.value ? 'Resume' : 'Pause',
+                              ),
+                              // Add note button
+                              IconButton(
+                                onPressed: controller.addNote,
+                                icon: const Icon(Icons.note_add, size: 32),
+                                tooltip: 'Add Note',
+                              ),
+                              // Clear text button
+                              IconButton(
+                                onPressed: () {
+                                  controller.transcriptionText.value = '';
+                                },
+                                icon: const Icon(Icons.clear, size: 32),
+                                tooltip: 'Clear Text',
+                              ),
+                            ],
+                          )
+                        : const SizedBox.shrink(),
+                    ),
+                    
+                    const SizedBox(height: 16),
+                    
+                    // Main recording button
+                    Obx(() => GestureDetector(
                       onTap: controller.toggleRecording,
                       child: Container(
                         width: 80,
@@ -192,111 +234,71 @@ class RecordView extends GetView<RecordController> {
                                       ? Colors.red
                                       : Theme.of(context).colorScheme.primary)
                                   .withOpacity(0.3),
-                              blurRadius: 15,
-                              spreadRadius: 2,
+                              blurRadius: 20,
+                              spreadRadius: 5,
                             ),
                           ],
                         ),
-                        child: Icon(
-                          controller.isRecording.value
-                              ? Icons.stop
-                              : Icons.fiber_manual_record,
-                          size: controller.isRecording.value ? 40 : 48,
-                          color: Colors.white,
+                        child: Center(
+                          child: Icon(
+                            controller.isRecording.value
+                                ? Icons.stop
+                                : Icons.mic,
+                            color: Colors.white,
+                            size: 40,
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                  
-                  // Save notes button
-                  Obx(
-                    () => controller.isRecording.value
-                        ? IconButton(
-                            onPressed: controller.addNote,
-                            icon: const Icon(
-                              Icons.note_add,
-                              size: 32,
-                            ),
-                            style: IconButton.styleFrom(
-                              backgroundColor:
-                                  Theme.of(context).colorScheme.surfaceVariant,
-                              padding: const EdgeInsets.all(16),
-                            ),
+                    )),
+                    
+                    const SizedBox(height: 12),
+                    
+                    // Status text
+                    Obx(() => Text(
+                      controller.isRecording.value
+                          ? (controller.isPaused.value ? 'Paused' : 'Recording...')
+                          : 'Tap to start',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: controller.isRecording.value
+                            ? Colors.red
+                            : Theme.of(context).colorScheme.primary,
+                      ),
+                    )),
+                    
+                    // Transcription status
+                    const SizedBox(height: 8),
+                    Obx(() => controller.isTranscribing.value
+                        ? Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Transcribing...',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
                           )
-                        : const SizedBox(width: 64),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 48),
-              
-              // Tips or notes count
-              Obx(
-                () => Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceVariant,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        controller.isRecording.value
-                            ? Icons.tips_and_updates
-                            : Icons.info_outline,
-                        color: Theme.of(context).colorScheme.primary,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          controller.isRecording.value
-                              ? controller.notes.isEmpty
-                                  ? 'Tap the note button to add timestamps'
-                                  : '${controller.notes.length} notes added'
-                              : 'Find a quiet place for better quality',
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      ),
-                    ],
-                  ),
+                        : const SizedBox.shrink(),
+                    ),
+                  ],
                 ),
               ),
-              
-              // Transcription status
-              const SizedBox(height: 16),
-              Obx(
-                () => controller.isTranscribing.value
-                    ? Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primaryContainer,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: [
-                            SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                'Transcribing audio...',
-                                style: Theme.of(context).textTheme.bodySmall,
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    : const SizedBox.shrink(),
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

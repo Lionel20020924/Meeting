@@ -28,6 +28,7 @@ class RecordController extends GetxController {
   final AudioRecorder _recorder = AudioRecorder();
   String? _recordingPath;
   StreamSubscription<RecordState>? _recordStateSubscription;
+  Timer? _transcriptionTimer;
   
   @override
   void onInit() {
@@ -40,6 +41,7 @@ class RecordController extends GetxController {
   void onClose() {
     titleController.dispose();
     _timer?.cancel();
+    _transcriptionTimer?.cancel();
     _recorder.dispose();
     _recordStateSubscription?.cancel();
     super.onClose();
@@ -130,8 +132,8 @@ class RecordController extends GetxController {
   }
   
   void _startPeriodicTranscription() {
-    // Transcribe every 30 seconds
-    Timer.periodic(const Duration(seconds: 30), (timer) {
+    // Transcribe every 10 seconds for more real-time results
+    _transcriptionTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
       if (!isRecording.value || isPaused.value) {
         timer.cancel();
         return;
@@ -144,34 +146,57 @@ class RecordController extends GetxController {
     if (_recordingPath == null || !isRecording.value) return;
     
     try {
+      // Don't start new transcription if one is already in progress
+      if (isTranscribing.value) return;
+      
       isTranscribing.value = true;
       
-      // Read the current recording file
-      final file = File(_recordingPath!);
-      if (await file.exists()) {
-        final audioData = await file.readAsBytes();
-        
-        // Transcribe using OpenAI Whisper
-        final transcription = await OpenAIService.transcribeAudio(
-          audioData: audioData,
-          language: 'en',
-        );
-        
-        if (transcription.isNotEmpty) {
-          transcriptionText.value = transcription;
+      // Stop recording temporarily to read the file
+      final currentPath = await _recorder.stop();
+      
+      if (currentPath != null) {
+        // Read the current recording file
+        final file = File(currentPath);
+        if (await file.exists()) {
+          final audioData = await file.readAsBytes();
           
-          // Add transcription as a note
-          notes.add({
-            'time': recordingTime.value,
-            'note': transcription,
-            'type': 'transcription',
-          });
+          // Transcribe using OpenAI Whisper
+          final transcription = await OpenAIService.transcribeAudio(
+            audioData: audioData,
+            language: 'en',
+          );
+          
+          if (transcription.isNotEmpty) {
+            // Append new transcription to existing text
+            if (transcriptionText.value.isNotEmpty) {
+              transcriptionText.value += ' ';
+            }
+            transcriptionText.value += transcription;
+          }
         }
+        
+        // Resume recording with a new file
+        _recordingPath = '${(await getTemporaryDirectory()).path}/recording_${DateTime.now().millisecondsSinceEpoch}.wav';
+        await _recorder.start(
+          RecordConfig(
+            encoder: AudioEncoder.wav,
+            bitRate: 128000,
+            sampleRate: 16000,
+            numChannels: 1,
+          ),
+          path: _recordingPath!,
+        );
       }
     } catch (e) {
       if (Get.isLogEnable) {
         Get.log('Error transcribing audio: $e');
       }
+      Get.snackbar(
+        'Transcription Error',
+        'Failed to transcribe audio. Please check your internet connection.',
+        snackPosition: SnackPosition.BOTTOM,
+        duration: const Duration(seconds: 3),
+      );
     } finally {
       isTranscribing.value = false;
     }
@@ -275,6 +300,7 @@ class RecordController extends GetxController {
   Future<void> _stopRecording() async {
     try {
       await _recorder.stop();
+      _transcriptionTimer?.cancel();
     } catch (e) {
       if (Get.isLogEnable) {
         Get.log('Error stopping recorder: $e');
@@ -301,6 +327,7 @@ class RecordController extends GetxController {
     isPaused.value = false;
     isTranscribing.value = false;
     _timer?.cancel();
+    _transcriptionTimer?.cancel();
     _seconds = 0;
     recordingTime.value = '00:00';
     titleController.clear();
