@@ -8,7 +8,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../../routes/app_pages.dart';
-import '../../services/openai_service.dart';
+import '../../services/storage_service.dart';
 
 class RecordController extends GetxController {
   final titleController = TextEditingController();
@@ -75,12 +75,13 @@ class RecordController extends GetxController {
     });
   }
 
-  void toggleRecording() {
+  void toggleRecording() async {
     if (isRecording.value) {
-      // Show dialog to save recording
+      // Stop recording first, then show save dialog
+      await _stopRecording();
       _showSaveDialog();
     } else {
-      startRecording();
+      await startRecording();
     }
   }
 
@@ -155,6 +156,9 @@ class RecordController extends GetxController {
       final currentPath = await _recorder.stop();
       
       if (currentPath != null) {
+        // Save the current path
+        _recordingPath = currentPath;
+        
         // Read the current recording file
         final file = File(currentPath);
         if (await file.exists()) {
@@ -173,10 +177,13 @@ class RecordController extends GetxController {
             }
             transcriptionText.value += transcription;
           }
+          
+          // Keep the original file for final save
+          // Don't delete it here
         }
         
-        // Resume recording with a new file
-        _recordingPath = '${(await getTemporaryDirectory()).path}/recording_${DateTime.now().millisecondsSinceEpoch}.wav';
+        // Resume recording with a new file for next chunk
+        final newPath = '${(await getTemporaryDirectory()).path}/recording_${DateTime.now().millisecondsSinceEpoch}.wav';
         await _recorder.start(
           RecordConfig(
             encoder: AudioEncoder.wav,
@@ -184,7 +191,7 @@ class RecordController extends GetxController {
             sampleRate: 16000,
             numChannels: 1,
           ),
-          path: _recordingPath!,
+          path: newPath,
         );
       }
     } catch (e) {
@@ -203,10 +210,7 @@ class RecordController extends GetxController {
   }
 
   void _showSaveDialog() {
-    // Pause recording while showing dialog
-    if (!isPaused.value) {
-      togglePause();
-    }
+    // Recording is already stopped at this point
     
     Get.dialog(
       AlertDialog(
@@ -235,14 +239,6 @@ class RecordController extends GetxController {
           ],
         ),
         actions: [
-          TextButton(
-            onPressed: () {
-              Get.back();
-              // Resume recording
-              togglePause();
-            },
-            child: const Text('Continue Recording'),
-          ),
           TextButton(
             onPressed: () {
               Get.back();
@@ -275,32 +271,95 @@ class RecordController extends GetxController {
       return;
     }
     
-    // Stop recording
-    await _stopRecording();
-    
-    // Final transcription
-    await _transcribeCurrentRecording();
-    
-    Get.back(); // Close dialog
-    
-    // Navigate to summary page after recording
-    Get.toNamed(Routes.SUMMARY, arguments: {
-      'recordingId': DateTime.now().millisecondsSinceEpoch.toString(),
-      'title': titleController.text,
-      'duration': recordingTime.value,
-      'notes': notes.toList(),
-      'transcription': transcriptionText.value,
-      'audioPath': _recordingPath,
-    });
-    
-    // Reset state
-    _resetRecording();
+    try {
+      // Show loading indicator
+      Get.dialog(
+        const Center(child: CircularProgressIndicator()),
+        barrierDismissible: false,
+      );
+      
+      // Final transcription if needed (recording already stopped)
+      if (transcriptionText.value.isEmpty && _recordingPath != null) {
+        // For final transcription, we need to read the already saved file
+        final file = File(_recordingPath!);
+        if (await file.exists()) {
+          final audioData = await file.readAsBytes();
+          try {
+            isTranscribing.value = true;
+            final transcription = await OpenAIService.transcribeAudio(
+              audioData: audioData,
+              language: 'en',
+            );
+            if (transcription.isNotEmpty) {
+              transcriptionText.value = transcription;
+            }
+          } finally {
+            isTranscribing.value = false;
+          }
+        }
+      }
+      
+      // Save audio file to permanent storage
+      String permanentAudioPath = '';
+      if (_recordingPath != null) {
+        permanentAudioPath = await StorageService.saveAudioFile(_recordingPath!);
+      }
+      
+      // Create meeting data
+      final meetingData = {
+        'id': DateTime.now().millisecondsSinceEpoch.toString(),
+        'title': titleController.text,
+        'date': DateTime.now().toIso8601String(),
+        'duration': recordingTime.value,
+        'notes': notes.map((note) => Map<String, dynamic>.from(note)).toList(),
+        'transcription': transcriptionText.value,
+        'audioPath': permanentAudioPath,
+        'participants': '1',
+      };
+      
+      // Save to persistent storage
+      await StorageService.saveMeeting(meetingData);
+      
+      // Close loading dialog
+      Get.back();
+      // Close save dialog
+      Get.back();
+      
+      Get.snackbar(
+        'Success',
+        'Meeting saved successfully',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
+      
+      // Navigate to summary page
+      Get.toNamed(Routes.SUMMARY, arguments: meetingData);
+      
+      // Reset state
+      _resetRecording();
+      
+    } catch (e) {
+      Get.back(); // Close loading dialog if open
+      Get.snackbar(
+        'Error',
+        'Failed to save recording: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
   }
   
   Future<void> _stopRecording() async {
     try {
-      await _recorder.stop();
+      // Stop the recorder and get the final path
+      final finalPath = await _recorder.stop();
+      if (finalPath != null) {
+        _recordingPath = finalPath;
+      }
       _transcriptionTimer?.cancel();
+      isRecording.value = false;
     } catch (e) {
       if (Get.isLogEnable) {
         Get.log('Error stopping recorder: $e');
