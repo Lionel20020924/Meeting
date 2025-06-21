@@ -2,6 +2,8 @@ import 'package:get/get.dart';
 
 import '../modules/login/login_binding.dart';
 import '../modules/login/login_view.dart';
+import '../modules/home/home_binding.dart';
+import '../modules/home/home_view.dart';
 import '../modules/meetings/meetings_binding.dart';
 import '../modules/meetings/meetings_view.dart';
 import '../modules/record/record_binding.dart';
@@ -21,6 +23,11 @@ class AppPages {
   static const INITIAL = Routes.LOGIN;
 
   static final routes = [
+    GetPage(
+      name: _Paths.HOME,
+      page: () => const HomeView(),
+      binding: HomeBinding(),
+    ),
     GetPage(
       name: _Paths.LOGIN,
       page: () => const LoginView(),

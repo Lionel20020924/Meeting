@@ -84,7 +84,7 @@ class LoginController extends GetxController {
         // TODO: Save credentials to local storage
       }
       
-      Get.offAllNamed(Routes.MEETINGS);
+      Get.offAllNamed(Routes.HOME);
     } catch (e) {
       Get.snackbar(
         'Login Failed',

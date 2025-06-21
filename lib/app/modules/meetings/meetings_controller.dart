@@ -114,8 +114,4 @@ class MeetingsController extends GetxController {
   void startRecording() {
     Get.toNamed(Routes.RECORD);
   }
-
-  void goToProfile() {
-    Get.toNamed(Routes.PROFILE);
-  }
 }

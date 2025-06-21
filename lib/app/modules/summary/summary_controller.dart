@@ -40,7 +40,7 @@ The transcript would include timestamps and speaker identification for better co
       snackPosition: SnackPosition.BOTTOM,
     );
     
-    // Navigate back to meetings list
-    Get.offAllNamed(Routes.MEETINGS);
+    // Navigate back
+    Get.back();
   }
 }

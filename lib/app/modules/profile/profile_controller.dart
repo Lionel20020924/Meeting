@@ -20,6 +20,7 @@ class ProfileController extends GetxController {
             onPressed: () {
               Get.back();
               // TODO: Clear user session
+              // Clear all pages and go to login
               Get.offAllNamed(Routes.LOGIN);
             },
             child: const Text(

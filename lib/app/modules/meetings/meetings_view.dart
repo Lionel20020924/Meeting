@@ -26,10 +26,6 @@ class MeetingsView extends GetView<MeetingsController> {
             onPressed: controller.showSearchDialog,
             icon: const Icon(Icons.search),
           ),
-          IconButton(
-            onPressed: controller.goToProfile,
-            icon: const Icon(Icons.person_outline),
-          ),
         ],
       ),
       body: RefreshIndicator(
@@ -68,7 +64,7 @@ class MeetingsView extends GetView<MeetingsController> {
                     ElevatedButton.icon(
                       onPressed: controller.startRecording,
                       icon: const Icon(Icons.mic),
-                      label: const Text('Record Meeting'),
+                      label: const Text('Start Recording'),
                     ),
                   ],
                 ),
@@ -184,11 +180,6 @@ class MeetingsView extends GetView<MeetingsController> {
             );
           },
         ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: controller.startRecording,
-        icon: const Icon(Icons.mic),
-        label: const Text('New Meeting'),
       ),
     );
   }
