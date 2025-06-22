@@ -15,13 +15,13 @@ class PostRecordingView extends GetView<PostRecordingController> {
           _buildAnimatedBackground(context),
           // Main content
           SafeArea(
-            child: CustomScrollView(
-              slivers: [
+            child: Column(
+              children: [
                 // Custom app bar
                 _buildCustomAppBar(context),
                 // Content
-                SliverToBoxAdapter(
-                  child: Padding(
+                Expanded(
+                  child: SingleChildScrollView(
                     padding: const EdgeInsets.all(24.0),
                     child: Column(
                       children: [
@@ -30,13 +30,13 @@ class PostRecordingView extends GetView<PostRecordingController> {
                         const SizedBox(height: 32),
                         // Meeting info card with edit capability
                         _buildMeetingInfoCard(context),
-                        const SizedBox(height: 24),
-                        // Quick actions
-                        _buildQuickActions(context),
                         const SizedBox(height: 32),
-                        // Main action cards
-                        _buildActionCards(context),
-                        const SizedBox(height: 80),
+                        // Main action section - simplified
+                        _buildMainActions(context),
+                        const SizedBox(height: 24),
+                        // Secondary actions - moved to expandable section
+                        _buildSecondaryActions(context),
+                        const SizedBox(height: 100), // Space for bottom actions
                       ],
                     ),
                   ),
@@ -44,8 +44,8 @@ class PostRecordingView extends GetView<PostRecordingController> {
               ],
             ),
           ),
-          // Bottom action buttons
-          _buildBottomActions(context),
+          // Bottom primary actions - simplified
+          _buildBottomPrimaryActions(context),
         ],
       ),
     );
@@ -75,21 +75,35 @@ class PostRecordingView extends GetView<PostRecordingController> {
   }
 
   Widget _buildCustomAppBar(BuildContext context) {
-    return SliverAppBar(
-      expandedHeight: 80,
-      floating: true,
-      backgroundColor: Colors.transparent,
-      elevation: 0,
-      automaticallyImplyLeading: false,
-      flexibleSpace: FlexibleSpaceBar(
-        title: Text(
-          'Recording Complete',
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurface,
-            fontWeight: FontWeight.bold,
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      child: Row(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.7),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: IconButton(
+              onPressed: () => Get.back(),
+              icon: Icon(
+                Icons.arrow_back_ios_new,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+            ),
           ),
-        ),
-        centerTitle: true,
+          Expanded(
+            child: Center(
+              child: Text(
+                'Recording Complete',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 48), // Balance the back button
+        ],
       ),
     );
   }
@@ -103,8 +117,8 @@ class PostRecordingView extends GetView<PostRecordingController> {
         return Transform.scale(
           scale: value,
           child: Container(
-            width: 120,
-            height: 120,
+            width: 100,
+            height: 100,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: LinearGradient(
@@ -119,7 +133,7 @@ class PostRecordingView extends GetView<PostRecordingController> {
                 BoxShadow(
                   color: Colors.green.withOpacity(0.3 * value),
                   blurRadius: 20,
-                  spreadRadius: 5,
+                  spreadRadius: 3,
                 ),
               ],
             ),
@@ -134,7 +148,7 @@ class PostRecordingView extends GetView<PostRecordingController> {
                     builder: (context, iconValue, child) {
                       return Icon(
                         Icons.check_rounded,
-                        size: 60,
+                        size: 50,
                         color: Colors.white.withOpacity(iconValue),
                       );
                     },
@@ -313,7 +327,8 @@ class PostRecordingView extends GetView<PostRecordingController> {
     );
   }
 
-  Widget _buildQuickActions(BuildContext context) {
+  // New simplified main actions - focus on primary choices
+  Widget _buildMainActions(BuildContext context) {
     return FutureBuilder(
       future: Future.delayed(const Duration(milliseconds: 600)),
       builder: (context, snapshot) {
@@ -327,32 +342,33 @@ class PostRecordingView extends GetView<PostRecordingController> {
               offset: Offset(0, 20 * (1 - value)),
               child: Opacity(
                 opacity: value,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildQuickActionButton(
-                      context,
-                      Icons.play_circle_outline,
-                      'Preview',
-                      controller.playPreview,
+                    Text(
+                      'What would you like to do?',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                    _buildQuickActionButton(
+                    const SizedBox(height: 16),
+                    // Primary action - Generate Summary
+                    _buildPrimaryActionCard(
                       context,
-                      Icons.share_outlined,
-                      'Share',
-                      controller.shareRecording,
+                      icon: Icons.auto_awesome,
+                      title: 'Generate AI Summary',
+                      subtitle: 'Get insights, action items, and key points automatically',
+                      onTap: controller.generateSummaryAndSave,
+                      isLoading: controller.isGeneratingSummary,
                     ),
-                    _buildQuickActionButton(
+                    const SizedBox(height: 12),
+                    // Secondary action - Save without summary
+                    _buildSecondaryActionCard(
                       context,
-                      Icons.label_outline,
-                      'Add Tags',
-                      controller.addTags,
-                    ),
-                    _buildQuickActionButton(
-                      context,
-                      Icons.info_outline,
-                      'Details',
-                      controller.viewMeetingDetails,
+                      icon: Icons.save_outlined,
+                      title: 'Save Recording Only',
+                      subtitle: 'Save now, generate summary later',
+                      onTap: controller.saveWithoutSummary,
                     ),
                   ],
                 ),
@@ -364,168 +380,142 @@ class PostRecordingView extends GetView<PostRecordingController> {
     );
   }
 
-  Widget _buildQuickActionButton(
-    BuildContext context,
-    IconData icon,
-    String label,
-    VoidCallback onTap,
-  ) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Column(
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primaryContainer,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                icon,
-                color: Theme.of(context).colorScheme.onPrimaryContainer,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildActionCards(BuildContext context) {
-    return Column(
-      children: [
-        FutureBuilder(
-          future: Future.delayed(const Duration(milliseconds: 800)),
-          builder: (context, snapshot) {
-            final shouldAnimate = snapshot.connectionState == ConnectionState.done;
-            return TweenAnimationBuilder<double>(
-              tween: Tween(begin: 0.0, end: shouldAnimate ? 1.0 : 0.0),
-              duration: const Duration(milliseconds: 600),
-              curve: Curves.easeOutCubic,
-              builder: (context, value, child) {
-                return Transform.translate(
-                  offset: Offset(0, 20 * (1 - value)),
-                  child: Opacity(
-                    opacity: value,
-                    child: _buildActionCard(
-                      context,
-                      icon: Icons.auto_awesome,
-                      title: 'Generate AI Summary',
-                      subtitle: 'Get insights, action items, and key points',
-                      gradient: LinearGradient(
-                        colors: [
-                          Theme.of(context).colorScheme.primary,
-                          Theme.of(context).colorScheme.secondary,
-                        ],
-                      ),
-                      onTap: controller.generateSummaryAndSave,
-                      isRecommended: true,
-                    ),
-                  ),
-                );
-              },
-            );
-          },
-        ),
-        const SizedBox(height: 16),
-        FutureBuilder(
-          future: Future.delayed(const Duration(milliseconds: 1000)),
-          builder: (context, snapshot) {
-            final shouldAnimate = snapshot.connectionState == ConnectionState.done;
-            return TweenAnimationBuilder<double>(
-              tween: Tween(begin: 0.0, end: shouldAnimate ? 1.0 : 0.0),
-              duration: const Duration(milliseconds: 600),
-              curve: Curves.easeOutCubic,
-              builder: (context, value, child) {
-                return Transform.translate(
-                  offset: Offset(0, 20 * (1 - value)),
-                  child: Opacity(
-                    opacity: value,
-                    child: _buildActionCard(
-                      context,
-                      icon: Icons.save_alt,
-                      title: 'Save Without Summary',
-                      subtitle: 'Save the recording and generate summary later',
-                      gradient: LinearGradient(
-                        colors: [
-                          Colors.grey.shade400,
-                          Colors.grey.shade500,
-                        ],
-                      ),
-                      onTap: controller.saveWithoutSummary,
-                      isRecommended: false,
-                    ),
-                  ),
-                );
-              },
-            );
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildActionCard(
+  Widget _buildPrimaryActionCard(
     BuildContext context, {
     required IconData icon,
     required String title,
     required String subtitle,
-    required Gradient gradient,
     required VoidCallback onTap,
-    required bool isRecommended,
+    required RxBool isLoading,
   }) {
-    return Material(
-      elevation: isRecommended ? 8 : 4,
-      shadowColor: isRecommended
-          ? Theme.of(context).colorScheme.primary.withOpacity(0.3)
-          : Colors.black.withOpacity(0.1),
-      borderRadius: BorderRadius.circular(20),
+    return Obx(() => Material(
+      elevation: 8,
+      shadowColor: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+      borderRadius: BorderRadius.circular(16),
       child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
+        onTap: isLoading.value ? null : onTap,
+        borderRadius: BorderRadius.circular(16),
         child: Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            border: isRecommended
-                ? Border.all(
-                    color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
-                    width: 2,
-                  )
-                : null,
+            borderRadius: BorderRadius.circular(16),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Theme.of(context).colorScheme.primary,
+                Theme.of(context).colorScheme.secondary,
+              ],
+            ),
           ),
           child: Row(
             children: [
               Container(
-                width: 60,
-                height: 60,
+                width: 56,
+                height: 56,
                 decoration: BoxDecoration(
-                  gradient: gradient,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: gradient.colors.first.withOpacity(0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 4),
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: isLoading.value
+                    ? const Center(
+                        child: SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        ),
+                      )
+                    : Icon(
+                        icon,
+                        size: 28,
+                        color: Colors.white,
+                      ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isLoading.value ? 'Processing...' : title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      isLoading.value ? 'Generating your meeting summary' : subtitle,
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.9),
+                        fontSize: 14,
+                      ),
                     ),
                   ],
                 ),
+              ),
+              if (!isLoading.value)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Text(
+                    'Recommended',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    ));
+  }
+
+  Widget _buildSecondaryActionCard(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      elevation: 2,
+      shadowColor: Colors.black.withOpacity(0.1),
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 child: Icon(
                   icon,
-                  size: 30,
-                  color: Colors.white,
+                  size: 28,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
               const SizedBox(width: 16),
@@ -533,45 +523,13 @@ class PostRecordingView extends GetView<PostRecordingController> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Text(
-                          title,
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                            color: isRecommended
-                                ? Theme.of(context).colorScheme.primary
-                                : Theme.of(context).colorScheme.onSurface,
-                          ),
-                        ),
-                        if (isRecommended) ...[
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  Theme.of(context).colorScheme.primary,
-                                  Theme.of(context).colorScheme.secondary,
-                                ],
-                              ),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Text(
-                              'Recommended',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -586,7 +544,7 @@ class PostRecordingView extends GetView<PostRecordingController> {
               ),
               Icon(
                 Icons.arrow_forward_ios,
-                size: 20,
+                size: 16,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ],
@@ -596,7 +554,129 @@ class PostRecordingView extends GetView<PostRecordingController> {
     );
   }
 
-  Widget _buildBottomActions(BuildContext context) {
+  // New expandable secondary actions
+  Widget _buildSecondaryActions(BuildContext context) {
+    return FutureBuilder(
+      future: Future.delayed(const Duration(milliseconds: 800)),
+      builder: (context, snapshot) {
+        final shouldAnimate = snapshot.connectionState == ConnectionState.done;
+        return TweenAnimationBuilder<double>(
+          tween: Tween(begin: 0.0, end: shouldAnimate ? 1.0 : 0.0),
+          duration: const Duration(milliseconds: 600),
+          curve: Curves.easeOutCubic,
+          builder: (context, value, child) {
+            return Transform.translate(
+              offset: Offset(0, 20 * (1 - value)),
+              child: Opacity(
+                opacity: value,
+                child: ExpansionTile(
+                  tilePadding: const EdgeInsets.symmetric(horizontal: 8),
+                  childrenPadding: const EdgeInsets.all(16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  collapsedShape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  title: Row(
+                    children: [
+                      Icon(
+                        Icons.more_horiz,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'More Options',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _buildSecondaryActionButton(
+                          context,
+                          Icons.play_circle_outline,
+                          'Preview',
+                          controller.playPreview,
+                        ),
+                        _buildSecondaryActionButton(
+                          context,
+                          Icons.share_outlined,
+                          'Share',
+                          controller.shareRecording,
+                        ),
+                        _buildSecondaryActionButton(
+                          context,
+                          Icons.label_outline,
+                          'Tags',
+                          controller.addTags,
+                        ),
+                        _buildSecondaryActionButton(
+                          context,
+                          Icons.info_outline,
+                          'Details',
+                          controller.viewMeetingDetails,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildSecondaryActionButton(
+    BuildContext context,
+    IconData icon,
+    String label,
+    VoidCallback onTap,
+  ) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.7),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                icon,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                size: 24,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Simplified bottom actions - only discard
+  Widget _buildBottomPrimaryActions(BuildContext context) {
     return Positioned(
       bottom: 0,
       left: 0,
@@ -613,71 +693,36 @@ class PostRecordingView extends GetView<PostRecordingController> {
             ),
           ],
         ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Obx(() => OutlinedButton(
-                onPressed: controller.isSaving.value
-                    ? null
-                    : controller.discardRecording,
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  side: BorderSide(
-                    color: Colors.red.shade400,
-                    width: 2,
-                  ),
-                ),
-                child: Text(
-                  'Discard',
-                  style: TextStyle(
-                    color: Colors.red.shade400,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              )),
+        child: Obx(() => OutlinedButton(
+          onPressed: controller.isSaving.value ? null : controller.discardRecording,
+          style: OutlinedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            side: BorderSide(
+              color: Colors.red.shade400,
+              width: 2,
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              flex: 2,
-              child: Obx(() => ElevatedButton(
-                onPressed: controller.isGeneratingSummary.value
-                    ? null
-                    : controller.generateSummaryAndSave,
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  backgroundColor: Theme.of(context).colorScheme.primary,
+            foregroundColor: Colors.red.shade400,
+            backgroundColor: Colors.transparent,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.delete_outline,
+                color: Colors.red.shade400,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Discard Recording',
+                style: TextStyle(
+                  color: Colors.red.shade400,
+                  fontWeight: FontWeight.bold,
                 ),
-                child: controller.isGeneratingSummary.value
-                    ? Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          const Text('Processing...'),
-                        ],
-                      )
-                    : Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.auto_awesome),
-                          const SizedBox(width: 8),
-                          const Text(
-                            'Generate Summary',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-              )),
-            ),
-          ],
-        ),
+              ),
+            ],
+          ),
+        )),
       ),
     );
   }
