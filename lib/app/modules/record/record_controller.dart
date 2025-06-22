@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../../routes/app_pages.dart';
 import '../../services/storage_service.dart';
+import '../../services/openai_service.dart';
 
 class RecordController extends GetxController {
   final titleController = TextEditingController();
@@ -16,8 +17,11 @@ class RecordController extends GetxController {
   final isPaused = false.obs;
   final recordingTime = '00:00'.obs;
   final notes = <Map<String, String>>[].obs;
+  final transcribedText = ''.obs; // Real-time transcription text
+  final isTranscribing = false.obs;
   
   Timer? _timer;
+  Timer? _transcriptionTimer;
   int _seconds = 0;
   bool _animationToggle = false;
   
@@ -25,6 +29,9 @@ class RecordController extends GetxController {
   final AudioRecorder _recorder = AudioRecorder();
   String? _recordingPath;
   StreamSubscription<RecordState>? _recordStateSubscription;
+  
+  // Transcription chunks for real-time processing
+  List<String> _audioChunks = [];
   
   @override
   void onInit() {
@@ -37,9 +44,26 @@ class RecordController extends GetxController {
   void onClose() {
     titleController.dispose();
     _timer?.cancel();
+    _transcriptionTimer?.cancel();
     _recorder.dispose();
     _recordStateSubscription?.cancel();
+    _cleanupChunks();
     super.onClose();
+  }
+  
+  void _cleanupChunks() async {
+    // Clean up temporary chunk files
+    for (final chunkPath in _audioChunks) {
+      try {
+        final file = File(chunkPath);
+        if (await file.exists()) {
+          await file.delete();
+        }
+      } catch (e) {
+        // Ignore cleanup errors
+      }
+    }
+    _audioChunks.clear();
   }
   
   Future<void> _initializeRecorder() async {
@@ -112,6 +136,7 @@ class RecordController extends GetxController {
       
       isRecording.value = true;
       _startTimer();
+      _startRealtimeTranscription();
       
     } catch (e) {
       Get.snackbar(
@@ -211,6 +236,7 @@ class RecordController extends GetxController {
         'notes': notes.map((note) => Map<String, dynamic>.from(note)).toList(),
         'audioPath': permanentAudioPath,
         'participants': '1',
+        'transcription': transcribedText.value, // Include real-time transcription
       };
       
       // Don't save here - summary page will auto-save
@@ -249,6 +275,9 @@ class RecordController extends GetxController {
   
   Future<void> _stopRecording() async {
     try {
+      // Stop real-time transcription
+      _stopRealtimeTranscription();
+      
       // Stop the recorder and get the final path
       final finalPath = await _recorder.stop();
       if (finalPath != null) {
@@ -280,11 +309,14 @@ class RecordController extends GetxController {
     isRecording.value = false;
     isPaused.value = false;
     _timer?.cancel();
+    _transcriptionTimer?.cancel();
     _seconds = 0;
     recordingTime.value = '00:00';
     titleController.clear();
     notes.clear();
+    transcribedText.value = '';
     _recordingPath = null;
+    _cleanupChunks();
   }
 
   void exitRecording() {
@@ -444,5 +476,59 @@ class RecordController extends GetxController {
 
   void toggleAnimation() {
     _animationToggle = !_animationToggle;
+  }
+  
+  void _startRealtimeTranscription() {
+    // For real-time transcription, we'll process the audio periodically
+    // Note: This is a simplified implementation. For true real-time transcription,
+    // you would need to implement streaming audio to the API
+    
+    _transcriptionTimer = Timer.periodic(const Duration(seconds: 10), (timer) async {
+      if (!isRecording.value || isPaused.value) return;
+      
+      // Transcribe accumulated audio
+      await _transcribeAccumulatedAudio();
+    });
+  }
+  
+  Future<void> _transcribeAccumulatedAudio() async {
+    try {
+      if (_recordingPath == null) return;
+      
+      // Check if file exists and has content
+      final audioFile = File(_recordingPath!);
+      if (!await audioFile.exists()) return;
+      
+      final fileSize = await audioFile.length();
+      if (fileSize < 1000) return; // Skip if file too small
+      
+      isTranscribing.value = true;
+      
+      // Read current recording
+      final audioData = await audioFile.readAsBytes();
+      
+      // Transcribe using OpenAI Whisper
+      final transcription = await OpenAIService.transcribeAudio(
+        audioData: audioData,
+        language: 'en',
+      );
+      
+      // Update transcription (replace with new full transcription)
+      if (transcription.isNotEmpty) {
+        transcribedText.value = transcription;
+      }
+      
+    } catch (e) {
+      if (Get.isLogEnable) {
+        Get.log('Error transcribing audio: $e');
+      }
+    } finally {
+      isTranscribing.value = false;
+    }
+  }
+  
+  void _stopRealtimeTranscription() {
+    _transcriptionTimer?.cancel();
+    _transcriptionTimer = null;
   }
 }

@@ -66,15 +66,51 @@ class RecordView extends GetView<RecordController> {
                                       ],
                                     ),
                                   ),
-                                // Recording status
-                                Text(
-                                  'Recording in progress...',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    height: 1.5,
-                                    color: Colors.grey[600],
-                                  ),
-                                ),
+                                // Real-time transcription
+                                Obx(() => Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    if (controller.isTranscribing.value)
+                                      Container(
+                                        margin: const EdgeInsets.only(bottom: 12),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            SizedBox(
+                                              width: 16,
+                                              height: 16,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                valueColor: AlwaysStoppedAnimation<Color>(
+                                                  Theme.of(context).colorScheme.primary,
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              'Transcribing...',
+                                              style: TextStyle(
+                                                fontSize: 14,
+                                                color: Theme.of(context).colorScheme.primary,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    Text(
+                                      controller.transcribedText.value.isEmpty
+                                          ? 'Start speaking to see transcription...'
+                                          : controller.transcribedText.value,
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        height: 1.5,
+                                        color: controller.transcribedText.value.isEmpty
+                                            ? Colors.grey[600]
+                                            : Colors.black87,
+                                      ),
+                                    ),
+                                  ],
+                                )),
                                 // Display notes
                                 if (controller.notes.isNotEmpty) ...[
                                   const SizedBox(height: 24),

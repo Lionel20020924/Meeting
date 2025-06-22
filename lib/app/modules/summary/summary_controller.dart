@@ -75,9 +75,19 @@ class SummaryController extends GetxController {
         return;
       }
       
-      // Step 1: Transcribe audio if not already transcribed
-      if (meetingData['transcription'] == null || meetingData['transcription'].toString().isEmpty) {
+      // Step 1: Check if we already have transcription from recording
+      if (meetingData['transcription'] != null && meetingData['transcription'].toString().isNotEmpty) {
+        // Use existing transcription from real-time recording
+        transcript.value = meetingData['transcription'].toString();
+        if (Get.isLogEnable) {
+          Get.log('Using existing transcription from recording: ${transcript.value.substring(0, transcript.value.length > 100 ? 100 : transcript.value.length)}...');
+        }
+      } else {
+        // No existing transcription, try to transcribe audio
         try {
+          if (Get.isLogEnable) {
+            Get.log('No existing transcription, attempting to transcribe audio file: $audioPath');
+          }
           await _transcribeAudio(audioPath);
         } catch (e) {
           if (Get.isLogEnable) {
@@ -87,8 +97,6 @@ class SummaryController extends GetxController {
           _showBasicMeetingInfo();
           return;
         }
-      } else {
-        transcript.value = meetingData['transcription'].toString();
       }
       
       // Step 2: Generate summary from transcript
@@ -136,10 +144,28 @@ class SummaryController extends GetxController {
       // Read audio file
       final audioFile = File(audioPath);
       if (!await audioFile.exists()) {
-        throw Exception('Audio file not found');
+        throw Exception('Audio file not found at path: $audioPath');
+      }
+      
+      final fileSize = await audioFile.length();
+      if (Get.isLogEnable) {
+        Get.log('Audio file size: ${fileSize / 1024} KB');
+      }
+      
+      if (fileSize < 1000) {
+        throw Exception('Audio file too small: ${fileSize} bytes');
       }
       
       final audioData = await audioFile.readAsBytes();
+      
+      // Check API key
+      if (dotenv.env['OPENAI_API_KEY'] == null || dotenv.env['OPENAI_API_KEY']!.isEmpty) {
+        throw Exception('OpenAI API key not configured');
+      }
+      
+      if (Get.isLogEnable) {
+        Get.log('Starting transcription with Whisper API...');
+      }
       
       // Transcribe using OpenAI Whisper
       final transcription = await OpenAIService.transcribeAudio(
@@ -147,7 +173,15 @@ class SummaryController extends GetxController {
         language: 'en',
       );
       
+      if (transcription.isEmpty) {
+        throw Exception('Transcription returned empty result');
+      }
+      
       transcript.value = transcription;
+      
+      if (Get.isLogEnable) {
+        Get.log('Transcription successful: ${transcription.substring(0, transcription.length > 100 ? 100 : transcription.length)}...');
+      }
       
     } catch (e) {
       throw Exception('Transcription failed: $e');
