@@ -6,12 +6,18 @@ import '../../services/storage_service.dart';
 
 class MeetingsController extends GetxController {
   final meetings = <Map<String, dynamic>>[].obs;
+  final filteredMeetings = <Map<String, dynamic>>[].obs;
   final isLoading = false.obs;
   final searchQuery = ''.obs;
   
   // Selection mode
   final isSelectionMode = false.obs;
   final selectedMeetings = <String>{}.obs;
+  
+  // Search and filter
+  final TextEditingController searchController = TextEditingController();
+  final currentFilter = 'all'.obs;
+  final currentSort = 'date_desc'.obs;
 
   @override
   void onInit() {
@@ -25,6 +31,12 @@ class MeetingsController extends GetxController {
     // Reload meetings when the controller is ready (useful when navigating back)
     loadMeetings();
   }
+  
+  @override
+  void onClose() {
+    searchController.dispose();
+    super.onClose();
+  }
 
   Future<void> loadMeetings() async {
     isLoading.value = true;
@@ -33,12 +45,14 @@ class MeetingsController extends GetxController {
       // Load actual meetings from storage
       final storedMeetings = await StorageService.loadMeetings();
       meetings.value = storedMeetings;
+      _applyFiltersAndSort();
     } catch (e) {
       if (Get.isLogEnable) {
         Get.log('Error loading meetings: $e');
       }
       // Keep empty list if error occurs
       meetings.value = [];
+      filteredMeetings.value = [];
     }
     
     isLoading.value = false;
@@ -248,7 +262,7 @@ class MeetingsController extends GetxController {
 
   void selectAll() {
     selectedMeetings.clear();
-    selectedMeetings.addAll(meetings.map((m) => m['id'].toString()));
+    selectedMeetings.addAll(filteredMeetings.map((m) => m['id'].toString()));
   }
 
   void deselectAll() {
@@ -337,5 +351,171 @@ class MeetingsController extends GetxController {
         );
       }
     }
+  }
+  
+  // Search and filter methods
+  void searchMeetings(String query) {
+    searchQuery.value = query;
+    _applyFiltersAndSort();
+  }
+  
+  void clearSearch() {
+    searchController.clear();
+    searchQuery.value = '';
+    _applyFiltersAndSort();
+  }
+  
+  void setFilter(String filter) {
+    currentFilter.value = filter;
+    _applyFiltersAndSort();
+  }
+  
+  void setSortOrder(String sort) {
+    currentSort.value = sort;
+    _applyFiltersAndSort();
+  }
+  
+  void _applyFiltersAndSort() {
+    var filtered = meetings.toList();
+    
+    // Apply search filter
+    if (searchQuery.value.isNotEmpty) {
+      filtered = filtered.where((meeting) {
+        final title = meeting['title']?.toString().toLowerCase() ?? '';
+        final transcription = meeting['transcription']?.toString().toLowerCase() ?? '';
+        final query = searchQuery.value.toLowerCase();
+        return title.contains(query) || transcription.contains(query);
+      }).toList();
+    }
+    
+    // Apply date filter
+    final now = DateTime.now();
+    switch (currentFilter.value) {
+      case 'today':
+        filtered = filtered.where((meeting) => isToday(meeting['date']?.toString() ?? '')).toList();
+        break;
+      case 'week':
+        filtered = filtered.where((meeting) {
+          try {
+            final date = DateTime.parse(meeting['date']?.toString() ?? '');
+            final difference = now.difference(date).inDays;
+            return difference >= 0 && difference <= 7;
+          } catch (e) {
+            return false;
+          }
+        }).toList();
+        break;
+      case 'month':
+        filtered = filtered.where((meeting) {
+          try {
+            final date = DateTime.parse(meeting['date']?.toString() ?? '');
+            return date.year == now.year && date.month == now.month;
+          } catch (e) {
+            return false;
+          }
+        }).toList();
+        break;
+    }
+    
+    // Apply sorting
+    switch (currentSort.value) {
+      case 'date_asc':
+        filtered.sort((a, b) {
+          try {
+            final dateA = DateTime.parse(a['date']?.toString() ?? '');
+            final dateB = DateTime.parse(b['date']?.toString() ?? '');
+            return dateA.compareTo(dateB);
+          } catch (e) {
+            return 0;
+          }
+        });
+        break;
+      case 'date_desc':
+        filtered.sort((a, b) {
+          try {
+            final dateA = DateTime.parse(a['date']?.toString() ?? '');
+            final dateB = DateTime.parse(b['date']?.toString() ?? '');
+            return dateB.compareTo(dateA);
+          } catch (e) {
+            return 0;
+          }
+        });
+        break;
+      case 'title_asc':
+        filtered.sort((a, b) {
+          final titleA = a['title']?.toString() ?? '';
+          final titleB = b['title']?.toString() ?? '';
+          return titleA.compareTo(titleB);
+        });
+        break;
+      case 'duration_desc':
+        filtered.sort((a, b) {
+          final durationA = _parseDuration(a['duration']?.toString() ?? '00:00');
+          final durationB = _parseDuration(b['duration']?.toString() ?? '00:00');
+          return durationB.compareTo(durationA);
+        });
+        break;
+    }
+    
+    filteredMeetings.value = filtered;
+  }
+  
+  int _parseDuration(String duration) {
+    try {
+      final parts = duration.split(':');
+      if (parts.length >= 2) {
+        final minutes = int.parse(parts[0]);
+        final seconds = int.parse(parts[1]);
+        return minutes * 60 + seconds;
+      }
+    } catch (e) {
+      // Ignore parsing errors
+    }
+    return 0;
+  }
+  
+  String getRelativeTime(String dateString) {
+    try {
+      final date = DateTime.parse(dateString);
+      final now = DateTime.now();
+      final difference = now.difference(date);
+      
+      if (difference.inMinutes < 60) {
+        return '${difference.inMinutes} minutes ago';
+      } else if (difference.inHours < 24) {
+        return '${difference.inHours} hours ago';
+      } else if (difference.inDays == 1) {
+        return 'Yesterday';
+      } else if (difference.inDays < 7) {
+        return '${difference.inDays} days ago';
+      } else {
+        return '${date.day}/${date.month}/${date.year}';
+      }
+    } catch (e) {
+      return dateString;
+    }
+  }
+  
+  int getWeeklyMeetingsCount() {
+    final now = DateTime.now();
+    return meetings.where((meeting) {
+      try {
+        final date = DateTime.parse(meeting['date']?.toString() ?? '');
+        final difference = now.difference(date).inDays;
+        return difference >= 0 && difference <= 7;
+      } catch (e) {
+        return false;
+      }
+    }).length;
+  }
+  
+  String getTotalHours() {
+    int totalSeconds = 0;
+    for (final meeting in meetings) {
+      totalSeconds += _parseDuration(meeting['duration']?.toString() ?? '00:00');
+    }
+    final hours = totalSeconds ~/ 3600;
+    final minutes = (totalSeconds % 3600) ~/ 60;
+    return '${hours}h ${minutes}m';
   }
 }
