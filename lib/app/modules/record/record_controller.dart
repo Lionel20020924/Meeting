@@ -239,24 +239,13 @@ class RecordController extends GetxController {
         'transcription': transcribedText.value, // Include real-time transcription
       };
       
-      // Don't save here - summary page will auto-save
-      // This avoids duplicate entries
-      
       // Close loading dialog
       Get.back();
       // Close save dialog
       Get.back();
       
-      Get.snackbar(
-        'Success',
-        'Meeting saved successfully',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.green,
-        colorText: Colors.white,
-      );
-      
-      // Navigate to summary page
-      Get.toNamed(Routes.SUMMARY, arguments: meetingData);
+      // Navigate to post-recording options page
+      Get.toNamed(Routes.POST_RECORDING, arguments: meetingData);
       
       // Reset state
       _resetRecording();

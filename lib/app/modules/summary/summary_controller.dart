@@ -33,8 +33,14 @@ class SummaryController extends GetxController {
     await Future.delayed(const Duration(milliseconds: 500));
     
     try {
-      // Save the basic meeting data immediately
-      await StorageService.saveMeeting(meetingData);
+      // Check if meeting is already saved
+      final meetings = await StorageService.loadMeetings();
+      final isAlreadySaved = meetings.any((m) => m['id'] == meetingData['id']);
+      
+      if (!isAlreadySaved) {
+        // Save the basic meeting data immediately if not already saved
+        await StorageService.saveMeeting(meetingData);
+      }
       
       // Update with transcript and summary when available
       ever(transcript, (_) => _updateSavedMeeting());

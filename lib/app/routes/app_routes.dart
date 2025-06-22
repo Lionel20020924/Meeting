@@ -10,6 +10,7 @@ abstract class Routes {
   static const MEETING_DETAIL = _Paths.MEETING_DETAIL;
   static const SUMMARY = _Paths.SUMMARY;
   static const PROFILE = _Paths.PROFILE;
+  static const POST_RECORDING = _Paths.POST_RECORDING;
 }
 
 abstract class _Paths {
@@ -22,4 +23,5 @@ abstract class _Paths {
   static const MEETING_DETAIL = '/meeting-detail';
   static const SUMMARY = '/summary';
   static const PROFILE = '/profile';
+  static const POST_RECORDING = '/post-recording';
 }

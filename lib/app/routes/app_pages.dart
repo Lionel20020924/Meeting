@@ -14,6 +14,8 @@ import '../modules/summary/summary_binding.dart';
 import '../modules/summary/summary_view.dart';
 import '../modules/profile/profile_binding.dart';
 import '../modules/profile/profile_view.dart';
+import '../modules/post_recording/post_recording_binding.dart';
+import '../modules/post_recording/post_recording_view.dart';
 
 part 'app_routes.dart';
 
@@ -57,6 +59,11 @@ class AppPages {
       name: _Paths.PROFILE,
       page: () => const ProfileView(),
       binding: ProfileBinding(),
+    ),
+    GetPage(
+      name: _Paths.POST_RECORDING,
+      page: () => const PostRecordingView(),
+      binding: PostRecordingBinding(),
     ),
   ];
 }
