@@ -5,9 +5,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:get/get.dart';
 
+import '../../routes/app_pages.dart';
 import '../../services/openai_service.dart';
 import '../../services/storage_service.dart';
-import '../meetings/meetings_controller.dart';
 
 class SummaryController extends GetxController {
   late Map<String, dynamic> meetingData;
@@ -289,16 +289,10 @@ ${transcript.value}
         colorText: Colors.white,
       );
       
-      // Navigate back to meetings and refresh the list
-      Get.until((route) => route.settings.name == '/meetings');
+      // Navigate back to home page
+      Get.offAllNamed(Routes.HOME);
       
-      // Refresh meetings list if controller is available
-      try {
-        final meetingsController = Get.find<MeetingsController>();
-        meetingsController.refreshMeetings();
-      } catch (e) {
-        // Controller not found, navigation will handle refresh
-      }
+      // Meetings view in home will refresh automatically
       
     } catch (e) {
       Get.snackbar(

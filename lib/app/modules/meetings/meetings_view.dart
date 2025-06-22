@@ -26,6 +26,37 @@ class MeetingsView extends GetView<MeetingsController> {
             onPressed: controller.showSearchDialog,
             icon: const Icon(Icons.search),
           ),
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'logout') {
+                controller.logout();
+              } else if (value == 'settings') {
+                controller.goToSettings();
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'settings',
+                child: Row(
+                  children: [
+                    Icon(Icons.settings, size: 20),
+                    SizedBox(width: 8),
+                    Text('Settings'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'logout',
+                child: Row(
+                  children: [
+                    Icon(Icons.logout, size: 20),
+                    SizedBox(width: 8),
+                    Text('Logout'),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ],
       ),
       body: RefreshIndicator(

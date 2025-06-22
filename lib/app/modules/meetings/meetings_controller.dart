@@ -109,4 +109,36 @@ class MeetingsController extends GetxController {
     meetings.insert(0, meeting);
     // Meeting is already persisted by the record controller
   }
+  
+  void logout() {
+    Get.dialog(
+      AlertDialog(
+        title: const Text('Logout'),
+        content: const Text('Are you sure you want to logout?'),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Get.back(); // Close dialog
+              // Navigate to login page and clear all routes
+              Get.offAllNamed(Routes.LOGIN);
+            },
+            child: const Text('Logout'),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  void goToSettings() {
+    // TODO: Navigate to settings page when implemented
+    Get.snackbar(
+      'Settings',
+      'Settings page coming soon',
+      snackPosition: SnackPosition.BOTTOM,
+    );
+  }
 }
