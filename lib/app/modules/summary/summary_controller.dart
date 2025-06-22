@@ -75,6 +75,26 @@ class SummaryController extends GetxController {
     try {
       isLoading.value = true;
       
+      // Step 1: Check if we already have complete summary data
+      if (meetingData['summary'] != null && meetingData['summary'].toString().isNotEmpty) {
+        // Use existing summary data directly
+        transcript.value = meetingData['transcription']?.toString() ?? '';
+        summary.value = meetingData['summary'].toString();
+        
+        // Load existing key points and action items if available
+        if (meetingData['keyPoints'] != null) {
+          keyPoints.value = List<String>.from(meetingData['keyPoints'] ?? []);
+        }
+        if (meetingData['actionItems'] != null) {
+          actionItems.value = List<String>.from(meetingData['actionItems'] ?? []);
+        }
+        
+        if (Get.isLogEnable) {
+          Get.log('Using existing complete summary data');
+        }
+        return;
+      }
+      
       // Check if we have audio path
       final audioPath = meetingData['audioPath']?.toString();
       if (audioPath == null || audioPath.isEmpty) {
@@ -83,7 +103,7 @@ class SummaryController extends GetxController {
         return;
       }
       
-      // Step 1: Check if we already have transcription
+      // Step 2: Check if we already have transcription but need summary
       if (meetingData['transcription'] != null && meetingData['transcription'].toString().isNotEmpty) {
         // Use existing transcription
         transcript.value = meetingData['transcription'].toString();
