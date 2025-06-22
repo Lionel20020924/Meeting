@@ -10,12 +10,22 @@ class LoginController extends GetxController {
   final showPassword = false.obs;
   final rememberMe = false.obs;
   final isLoading = false.obs;
+  
+  // Validation states
+  final emailError = ''.obs;
+  final passwordError = ''.obs;
+  final isEmailValid = false.obs;
+  final isPasswordValid = false.obs;
 
   @override
   void onInit() {
     super.onInit();
     // Load saved email if remember me was checked
     loadSavedCredentials();
+    
+    // Add listeners for real-time validation
+    emailController.addListener(_validateEmail);
+    passwordController.addListener(_validatePassword);
   }
 
   @override
@@ -62,14 +72,7 @@ class LoginController extends GetxController {
   }
 
   Future<void> login() async {
-    if (emailController.text.isEmpty || passwordController.text.isEmpty) {
-      Get.snackbar(
-        'Error',
-        'Please enter email and password',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
+    if (!validateForm()) {
       return;
     }
 
@@ -115,5 +118,48 @@ class LoginController extends GetxController {
     Future.delayed(const Duration(milliseconds: 500), () {
       Get.offAllNamed(Routes.HOME);
     });
+  }
+  
+  // Validation methods
+  void _validateEmail() {
+    final email = emailController.text;
+    if (email.isEmpty) {
+      emailError.value = '';
+      isEmailValid.value = false;
+    } else if (!GetUtils.isEmail(email)) {
+      emailError.value = 'Please enter a valid email';
+      isEmailValid.value = false;
+    } else {
+      emailError.value = '';
+      isEmailValid.value = true;
+    }
+  }
+  
+  void _validatePassword() {
+    final password = passwordController.text;
+    if (password.isEmpty) {
+      passwordError.value = '';
+      isPasswordValid.value = false;
+    } else if (password.length < 6) {
+      passwordError.value = 'Password must be at least 6 characters';
+      isPasswordValid.value = false;
+    } else {
+      passwordError.value = '';
+      isPasswordValid.value = true;
+    }
+  }
+  
+  bool validateForm() {
+    _validateEmail();
+    _validatePassword();
+    
+    if (emailController.text.isEmpty) {
+      emailError.value = 'Email is required';
+    }
+    if (passwordController.text.isEmpty) {
+      passwordError.value = 'Password is required';
+    }
+    
+    return isEmailValid.value && isPasswordValid.value;
   }
 }
