@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:audioplayers/audioplayers.dart';
 
@@ -16,6 +18,11 @@ class MeetingDetailController extends GetxController {
   final RxString errorMessage = ''.obs;
   final Rx<Duration> position = Duration.zero.obs;
   final Rx<Duration> duration = Duration.zero.obs;
+  
+  // Search functionality
+  final RxBool showSearch = false.obs;
+  final TextEditingController searchController = TextEditingController();
+  final RxString highlightedTranscription = ''.obs;
 
   @override
   void onInit() {
@@ -45,6 +52,7 @@ class MeetingDetailController extends GetxController {
   @override
   void onClose() {
     audioPlayer.dispose();
+    searchController.dispose();
     super.onClose();
   }
 
@@ -126,5 +134,70 @@ class MeetingDetailController extends GetxController {
     final minutes = twoDigits(duration.inMinutes.remainder(60));
     final seconds = twoDigits(duration.inSeconds.remainder(60));
     return '$minutes:$seconds';
+  }
+  
+  // Skip audio controls
+  Future<void> skipForward() async {
+    final newPosition = position.value + const Duration(seconds: 10);
+    if (newPosition < duration.value) {
+      await audioPlayer.seek(newPosition);
+    }
+  }
+  
+  Future<void> skipBackward() async {
+    final newPosition = position.value - const Duration(seconds: 10);
+    await audioPlayer.seek(newPosition.isNegative ? Duration.zero : newPosition);
+  }
+  
+  // Search functionality
+  void toggleSearch() {
+    showSearch.value = !showSearch.value;
+    if (!showSearch.value) {
+      searchController.clear();
+      highlightedTranscription.value = '';
+    }
+  }
+  
+  void searchInTranscription(String query) {
+    if (query.isEmpty) {
+      highlightedTranscription.value = '';
+      return;
+    }
+    
+    // Simple highlight implementation - in production, use proper text highlighting
+    highlightedTranscription.value = transcription.value;
+  }
+  
+  // Copy and share functionality
+  void copyTranscription() {
+    Clipboard.setData(ClipboardData(text: transcription.value));
+    Get.snackbar(
+      'Copied',
+      'Transcription copied to clipboard',
+      snackPosition: SnackPosition.BOTTOM,
+      duration: const Duration(seconds: 2),
+      backgroundColor: Colors.green,
+      colorText: Colors.white,
+    );
+  }
+  
+  void shareMeeting() {
+    final shareText = '''
+Meeting: ${meeting['title'] ?? 'Untitled'}
+Date: ${meeting['date'] ?? 'No date'}
+Duration: ${meeting['duration'] ?? '00:00'}
+
+${transcription.value.isNotEmpty ? 'Transcription:\n${transcription.value}' : 'No transcription available'}
+''';
+    
+    Clipboard.setData(ClipboardData(text: shareText));
+    Get.snackbar(
+      'Share',
+      'Meeting details copied to clipboard',
+      snackPosition: SnackPosition.BOTTOM,
+      duration: const Duration(seconds: 2),
+      backgroundColor: Colors.blue,
+      colorText: Colors.white,
+    );
   }
 }
