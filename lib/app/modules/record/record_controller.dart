@@ -127,7 +127,7 @@ class RecordController extends GetxController {
       await _recorder.start(
         RecordConfig(
           encoder: AudioEncoder.wav,
-          bitRate: 128000,
+          bitRate: 192000,
           sampleRate: 16000,
           numChannels: 1,
         ),

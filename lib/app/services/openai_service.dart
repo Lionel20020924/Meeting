@@ -18,7 +18,7 @@ class OpenAIService {
   static Future<String> transcribeAudio({
     required Uint8List audioData,
     String model = 'whisper-1',
-    String language = 'en',
+    String language = 'zh',
   }) async {
     try {
       var request = http.MultipartRequest(

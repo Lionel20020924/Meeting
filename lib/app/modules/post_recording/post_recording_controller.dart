@@ -52,7 +52,7 @@ class PostRecordingController extends GetxController {
       // Save meeting data first
       await StorageService.saveMeeting(meetingData);
       
-      // Navigate to summary page to generate summary
+      // Navigate directly to summary page - it will handle transcription and summary
       Get.offNamedUntil(
         Routes.SUMMARY,
         (route) => route.settings.name == Routes.HOME,

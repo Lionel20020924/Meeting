@@ -83,35 +83,38 @@ class SummaryController extends GetxController {
         return;
       }
       
-      // Step 1: Check if we already have transcription from recording
+      // Step 1: Check if we already have transcription
       if (meetingData['transcription'] != null && meetingData['transcription'].toString().isNotEmpty) {
-        // Use existing transcription from real-time recording
+        // Use existing transcription
         transcript.value = meetingData['transcription'].toString();
         if (Get.isLogEnable) {
-          Get.log('Using existing transcription from recording: ${transcript.value.substring(0, transcript.value.length > 100 ? 100 : transcript.value.length)}...');
+          Get.log('Using existing transcription: ${transcript.value.substring(0, transcript.value.length > 100 ? 100 : transcript.value.length)}...');
         }
+        
+        // Skip to summary generation
+        isTranscribing.value = false;
+        await _generateSummary();
       } else {
-        // No existing transcription, try to transcribe audio
+        // No existing transcription, need to transcribe
         try {
           if (Get.isLogEnable) {
             Get.log('No existing transcription, attempting to transcribe audio file: $audioPath');
           }
           await _transcribeAudio(audioPath);
+          
+          // After successful transcription, generate summary
+          if (transcript.value.isNotEmpty) {
+            await _generateSummary();
+          } else {
+            _showBasicMeetingInfo();
+          }
         } catch (e) {
           if (Get.isLogEnable) {
             Get.log('Transcription failed: $e');
           }
           // Continue with basic summary even if transcription fails
           _showBasicMeetingInfo();
-          return;
         }
-      }
-      
-      // Step 2: Generate summary from transcript
-      if (transcript.value.isNotEmpty) {
-        await _generateSummary();
-      } else {
-        _showBasicMeetingInfo();
       }
       
     } catch (e) {
@@ -163,7 +166,7 @@ class SummaryController extends GetxController {
       }
       
       if (fileSize < 1000) {
-        throw Exception('Audio file too small: ${fileSize} bytes');
+        throw Exception('Audio file too small: $fileSize bytes');
       }
       
       final audioData = await audioFile.readAsBytes();
@@ -188,6 +191,10 @@ class SummaryController extends GetxController {
       }
       
       transcript.value = transcription;
+      
+      // Update meeting data with transcription
+      meetingData['transcription'] = transcription;
+      await StorageService.updateMeeting(meetingData);
       
       if (Get.isLogEnable) {
         Get.log('Transcription successful: ${transcription.substring(0, transcription.length > 100 ? 100 : transcription.length)}...');
