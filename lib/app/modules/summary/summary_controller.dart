@@ -182,10 +182,10 @@ class SummaryController extends GetxController {
         Get.log('Starting transcription with Whisper API...');
       }
       
-      // Transcribe using OpenAI Whisper
+      // Transcribe using OpenAI Whisper (Chinese)
       final transcription = await OpenAIService.transcribeAudio(
         audioData: audioData,
-        language: 'en',
+        language: 'zh',
       );
       
       if (transcription.isEmpty) {

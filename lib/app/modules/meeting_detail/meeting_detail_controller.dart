@@ -110,10 +110,10 @@ class MeetingDetailController extends GetxController {
       // Read audio file
       final audioData = await audioFile.readAsBytes();
       
-      // Transcribe using OpenAI
+      // Transcribe using OpenAI (Chinese)
       final result = await OpenAIService.transcribeAudio(
         audioData: audioData,
-        language: 'en',
+        language: 'zh',
       );
 
       transcription.value = result;

@@ -15,10 +15,11 @@ class OpenAIService {
   };
   
   /// Convert audio to text using OpenAI Whisper API
+  /// Language is set to Chinese (zh) - OpenAI Whisper only supports 'zh' for Chinese
   static Future<String> transcribeAudio({
     required Uint8List audioData,
     String model = 'whisper-1',
-    String language = 'zh',
+    String language = 'zh', // Chinese - Whisper API only supports 'zh', not zh-CN
   }) async {
     try {
       var request = http.MultipartRequest(

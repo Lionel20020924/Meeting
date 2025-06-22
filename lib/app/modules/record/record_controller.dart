@@ -496,10 +496,10 @@ class RecordController extends GetxController {
       // Read current recording
       final audioData = await audioFile.readAsBytes();
       
-      // Transcribe using OpenAI Whisper
+      // Transcribe using OpenAI Whisper (Chinese)
       final transcription = await OpenAIService.transcribeAudio(
         audioData: audioData,
-        language: 'en',
+        language: 'zh',
       );
       
       // Update transcription (replace with new full transcription)
