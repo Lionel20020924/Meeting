@@ -97,7 +97,17 @@ class MeetingsView extends GetView<MeetingsController> {
               separatorBuilder: (context, index) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 final meeting = controller.meetings[index];
-                final isToday = controller.isToday(meeting['date']!);
+                final dateString = meeting['date']?.toString() ?? '';
+                final isToday = controller.isToday(dateString);
+                
+                // Format date for display
+                String formattedDate = '';
+                try {
+                  final date = DateTime.parse(dateString);
+                  formattedDate = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+                } catch (e) {
+                  formattedDate = dateString;
+                }
                 
                 return Card(
                   child: InkWell(
@@ -127,7 +137,7 @@ class MeetingsView extends GetView<MeetingsController> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  meeting['title']!,
+                                  meeting['title']?.toString() ?? 'Untitled Meeting',
                                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                         fontWeight: FontWeight.w600,
                                       ),
@@ -141,8 +151,28 @@ class MeetingsView extends GetView<MeetingsController> {
                                       color: Colors.grey.shade600,
                                     ),
                                     const SizedBox(width: 4),
+                                    Flexible(
+                                      child: Text(
+                                        formattedDate,
+                                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                              color: Colors.grey.shade600,
+                                            ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.timer,
+                                      size: 16,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                    const SizedBox(width: 4),
                                     Text(
-                                      meeting['date']!,
+                                      meeting['duration']?.toString() ?? '00:00',
                                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                             color: Colors.grey.shade600,
                                           ),
@@ -155,7 +185,7 @@ class MeetingsView extends GetView<MeetingsController> {
                                     ),
                                     const SizedBox(width: 4),
                                     Text(
-                                      '${meeting['participants'] ?? '3'} people',
+                                      '${meeting['participants'] ?? '1'} people',
                                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                             color: Colors.grey.shade600,
                                           ),
@@ -170,7 +200,7 @@ class MeetingsView extends GetView<MeetingsController> {
                                       vertical: 4,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Text(

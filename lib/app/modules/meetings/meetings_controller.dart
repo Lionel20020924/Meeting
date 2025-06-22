@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../routes/app_pages.dart';
+import '../../services/storage_service.dart';
 
 class MeetingsController extends GetxController {
-  final meetings = <Map<String, String>>[].obs;
+  final meetings = <Map<String, dynamic>>[].obs;
   final isLoading = false.obs;
   final searchQuery = ''.obs;
 
@@ -17,35 +18,17 @@ class MeetingsController extends GetxController {
   Future<void> loadMeetings() async {
     isLoading.value = true;
     
-    // TODO: Load actual meetings from database
-    await Future.delayed(const Duration(seconds: 1));
-    
-    meetings.value = [
-      {
-        'id': '1',
-        'title': 'Team Standup',
-        'date': '2024-01-20 09:00',
-        'participants': '5',
-      },
-      {
-        'id': '2',
-        'title': 'Client Review',
-        'date': '2024-01-20 14:00',
-        'participants': '3',
-      },
-      {
-        'id': '3',
-        'title': 'Sprint Planning',
-        'date': '2024-01-21 10:00',
-        'participants': '8',
-      },
-      {
-        'id': '4',
-        'title': 'Design Review',
-        'date': '2024-01-19 15:30',
-        'participants': '4',
-      },
-    ];
+    try {
+      // Load actual meetings from storage
+      final storedMeetings = await StorageService.loadMeetings();
+      meetings.value = storedMeetings;
+    } catch (e) {
+      if (Get.isLogEnable) {
+        Get.log('Error loading meetings: $e');
+      }
+      // Keep empty list if error occurs
+      meetings.value = [];
+    }
     
     isLoading.value = false;
   }
@@ -55,9 +38,15 @@ class MeetingsController extends GetxController {
   }
 
   bool isToday(String dateString) {
-    // Simple check - in real app, parse and compare dates properly
-    final today = DateTime.now();
-    return dateString.contains('2024-01-20'); // Mock today's date
+    try {
+      final meetingDate = DateTime.parse(dateString);
+      final today = DateTime.now();
+      return meetingDate.year == today.year &&
+             meetingDate.month == today.month &&
+             meetingDate.day == today.day;
+    } catch (e) {
+      return false;
+    }
   }
 
   void showSearchDialog() {
@@ -107,17 +96,17 @@ class MeetingsController extends GetxController {
     );
   }
 
-  void goToMeetingDetail(Map<String, String> meeting) {
-    Get.toNamed(Routes.MEETING_DETAIL, arguments: meeting);
+  void goToMeetingDetail(Map<String, dynamic> meeting) {
+    Get.toNamed(Routes.SUMMARY, arguments: meeting);
   }
 
   void startRecording() {
     Get.toNamed(Routes.RECORD);
   }
 
-  void addNewMeeting(Map<String, String> meeting) {
+  void addNewMeeting(Map<String, dynamic> meeting) {
     // Add the new meeting at the beginning of the list
     meetings.insert(0, meeting);
-    // Persist the meeting (TODO: Save to database)
+    // Meeting is already persisted by the record controller
   }
 }
