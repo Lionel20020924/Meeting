@@ -13,11 +13,16 @@ class SummaryView extends GetView<SummaryController> {
         title: Text(controller.meetingData['title'] ?? 'Meeting Summary'),
         centerTitle: true,
         actions: [
-          IconButton(
-            onPressed: controller.regenerateSummary,
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Regenerate Summary',
-          ),
+          Obx(() {
+            if (controller.summary.value.isNotEmpty) {
+              return IconButton(
+                onPressed: controller.regenerateSummary,
+                icon: const Icon(Icons.refresh),
+                tooltip: 'Regenerate Summary',
+              );
+            }
+            return const SizedBox.shrink();
+          }),
           IconButton(
             onPressed: controller.shareSummary,
             icon: const Icon(Icons.share),
@@ -201,6 +206,16 @@ class SummaryView extends GetView<SummaryController> {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
+                          const Spacer(),
+                          if (controller.summary.value.isEmpty && controller.transcript.value.isNotEmpty)
+                            ElevatedButton.icon(
+                              onPressed: controller.generateSummaryForFirstTime,
+                              icon: const Icon(Icons.auto_awesome, size: 18),
+                              label: const Text('Generate Summary'),
+                              style: ElevatedButton.styleFrom(
+                                minimumSize: const Size(140, 36),
+                              ),
+                            ),
                         ],
                       ),
                       const Divider(height: 24),
@@ -247,6 +262,39 @@ class SummaryView extends GetView<SummaryController> {
                                   ],
                                 ),
                               ),
+                              
+                              // Show prompt if no summary
+                              if (controller.summary.value.isEmpty && controller.transcript.value.isNotEmpty) ...[
+                                Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const SizedBox(height: 40),
+                                      Icon(
+                                        Icons.summarize_outlined,
+                                        size: 64,
+                                        color: Colors.grey[400],
+                                      ),
+                                      const SizedBox(height: 16),
+                                      Text(
+                                        'No summary generated yet',
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'Click "Generate Summary" to create one',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.grey[500],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                               
                               // Summary text
                               if (controller.summary.value.isNotEmpty) ...[

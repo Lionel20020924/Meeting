@@ -25,7 +25,7 @@ class SummaryController extends GetxController {
     super.onInit();
     // Get the meeting data passed from the recording page
     meetingData = Get.arguments ?? {};
-    _processRecording();
+    _processTranscription();
     // Auto-save the meeting data in background
     _autoSaveMeeting();
   }
@@ -71,27 +71,30 @@ class SummaryController extends GetxController {
     }
   }
   
-  Future<void> _processRecording() async {
+  Future<void> _processTranscription() async {
     try {
       isLoading.value = true;
       
-      // Step 1: Check if we already have complete summary data
-      if (meetingData['summary'] != null && meetingData['summary'].toString().isNotEmpty) {
-        // Use existing summary data directly
-        transcript.value = meetingData['transcription']?.toString() ?? '';
-        summary.value = meetingData['summary'].toString();
+      // Step 1: Check if we already have transcription
+      if (meetingData['transcription'] != null && meetingData['transcription'].toString().isNotEmpty) {
+        // Use existing transcription
+        transcript.value = meetingData['transcription'].toString();
         
-        // Load existing key points and action items if available
-        if (meetingData['keyPoints'] != null) {
-          keyPoints.value = List<String>.from(meetingData['keyPoints'] ?? []);
+        // Check if we already have summary data
+        if (meetingData['summary'] != null && meetingData['summary'].toString().isNotEmpty) {
+          // Load existing summary data
+          summary.value = meetingData['summary'].toString();
+          if (meetingData['keyPoints'] != null) {
+            keyPoints.value = List<String>.from(meetingData['keyPoints'] ?? []);
+          }
+          if (meetingData['actionItems'] != null) {
+            actionItems.value = List<String>.from(meetingData['actionItems'] ?? []);
+          }
+          if (Get.isLogEnable) {
+            Get.log('Using existing transcription and summary data');
+          }
         }
-        if (meetingData['actionItems'] != null) {
-          actionItems.value = List<String>.from(meetingData['actionItems'] ?? []);
-        }
-        
-        if (Get.isLogEnable) {
-          Get.log('Using existing complete summary data');
-        }
+        // Don't generate summary automatically, wait for user action
         return;
       }
       
@@ -99,75 +102,39 @@ class SummaryController extends GetxController {
       final audioPath = meetingData['audioPath']?.toString();
       if (audioPath == null || audioPath.isEmpty) {
         // If no audio, show basic meeting info without transcription
-        _showBasicMeetingInfo();
+        _showBasicTranscriptionInfo();
         return;
       }
       
-      // Step 2: Check if we already have transcription but need summary
-      if (meetingData['transcription'] != null && meetingData['transcription'].toString().isNotEmpty) {
-        // Use existing transcription
-        transcript.value = meetingData['transcription'].toString();
+      // No existing transcription, need to transcribe
+      try {
         if (Get.isLogEnable) {
-          Get.log('Using existing transcription: ${transcript.value.substring(0, transcript.value.length > 100 ? 100 : transcript.value.length)}...');
+          Get.log('No existing transcription, attempting to transcribe audio file: $audioPath');
         }
-        
-        // Skip to summary generation
-        isTranscribing.value = false;
-        await _generateSummary();
-      } else {
-        // No existing transcription, need to transcribe
-        try {
-          if (Get.isLogEnable) {
-            Get.log('No existing transcription, attempting to transcribe audio file: $audioPath');
-          }
-          await _transcribeAudio(audioPath);
-          
-          // After successful transcription, generate summary
-          if (transcript.value.isNotEmpty) {
-            await _generateSummary();
-          } else {
-            _showBasicMeetingInfo();
-          }
-        } catch (e) {
-          if (Get.isLogEnable) {
-            Get.log('Transcription failed: $e');
-          }
-          // Continue with basic summary even if transcription fails
-          _showBasicMeetingInfo();
+        await _transcribeAudio(audioPath);
+      } catch (e) {
+        if (Get.isLogEnable) {
+          Get.log('Transcription failed: $e');
         }
+        // Show error message
+        _showBasicTranscriptionInfo();
       }
       
     } catch (e) {
       if (Get.isLogEnable) {
-        Get.log('Error processing recording: $e');
+        Get.log('Error processing transcription: $e');
       }
       // Show basic meeting info as fallback
-      _showBasicMeetingInfo();
+      _showBasicTranscriptionInfo();
     } finally {
       isLoading.value = false;
     }
   }
   
-  void _showBasicMeetingInfo() {
-    // Show basic meeting information when API fails
-    final duration = meetingData['duration']?.toString() ?? '00:00';
-    final title = meetingData['title']?.toString() ?? 'Meeting';
-    
+  void _showBasicTranscriptionInfo() {
+    // Show basic meeting information when transcription fails
     transcript.value = 'Audio transcription not available';
-    summary.value = 'Meeting "$title" was recorded with duration of $duration. '
-                   'Audio file has been saved for future processing.';
-    
-    // Add basic info as key points
-    keyPoints.value = [
-      'Meeting duration: $duration',
-      'Recording date: ${DateTime.now().toString().substring(0, 16)}',
-      'Audio file saved successfully',
-    ];
-    
-    actionItems.value = [
-      'Review meeting audio file',
-      'Follow up on discussed topics',
-    ];
+    // Don't generate summary automatically
   }
   
   Future<void> _transcribeAudio(String audioPath) async {
@@ -392,6 +359,15 @@ ${transcript.value}
   
   void regenerateSummary() {
     if (transcript.value.isNotEmpty) {
+      isLoading.value = true;
+      _generateSummary().then((_) {
+        isLoading.value = false;
+      });
+    }
+  }
+  
+  void generateSummaryForFirstTime() {
+    if (transcript.value.isNotEmpty && summary.value.isEmpty) {
       isLoading.value = true;
       _generateSummary().then((_) {
         isLoading.value = false;
