@@ -22,12 +22,8 @@ class PostRecordingController extends GetxController {
       // Save meeting data to storage
       await StorageService.saveMeeting(meetingData);
       
-      // Navigate to meeting detail
-      Get.offNamedUntil(
-        Routes.MEETING_DETAIL,
-        (route) => route.settings.name == Routes.HOME,
-        arguments: meetingData,
-      );
+      // Navigate back to home page
+      Get.offAllNamed(Routes.HOME);
       
       Get.snackbar(
         'Success',
