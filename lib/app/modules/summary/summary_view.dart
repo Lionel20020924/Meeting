@@ -33,17 +33,70 @@ class SummaryView extends GetView<SummaryController> {
               children: [
                 const CircularProgressIndicator(),
                 const SizedBox(height: 20),
-                const Text(
-                  'Processing audio...',
-                  style: TextStyle(fontSize: 18),
+                Text(
+                  controller.isTranscribing.value 
+                      ? 'Transcribing audio...' 
+                      : controller.isGeneratingSummary.value
+                          ? 'Generating summary...'
+                          : 'Processing...',
+                  style: const TextStyle(fontSize: 18),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'This may take a few moments',
+                  controller.isTranscribing.value
+                      ? 'Converting speech to text'
+                      : controller.isGeneratingSummary.value
+                          ? 'Analyzing transcript'
+                          : 'This may take a few moments',
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.grey[600],
                   ),
+                ),
+                const SizedBox(height: 24),
+                // Progress indicators
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Column(
+                      children: [
+                        Icon(
+                          Icons.mic,
+                          size: 32,
+                          color: controller.isTranscribing.value
+                              ? Theme.of(context).primaryColor
+                              : controller.transcript.value.isNotEmpty
+                                  ? Colors.green
+                                  : Colors.grey,
+                        ),
+                        const SizedBox(height: 4),
+                        const Text('Transcribe'),
+                      ],
+                    ),
+                    const SizedBox(width: 24),
+                    Icon(
+                      Icons.arrow_forward,
+                      color: controller.transcript.value.isNotEmpty
+                          ? Theme.of(context).primaryColor
+                          : Colors.grey,
+                    ),
+                    const SizedBox(width: 24),
+                    Column(
+                      children: [
+                        Icon(
+                          Icons.summarize,
+                          size: 32,
+                          color: controller.isGeneratingSummary.value
+                              ? Theme.of(context).primaryColor
+                              : controller.summary.value.isNotEmpty
+                                  ? Colors.green
+                                  : Colors.grey,
+                        ),
+                        const SizedBox(height: 4),
+                        const Text('Summarize'),
+                      ],
+                    ),
+                  ],
                 ),
               ],
             ),

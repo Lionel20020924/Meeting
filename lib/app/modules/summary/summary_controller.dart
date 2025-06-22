@@ -13,6 +13,8 @@ class SummaryController extends GetxController {
   late Map<String, dynamic> meetingData;
   
   final isLoading = true.obs;
+  final isTranscribing = false.obs;
+  final isGeneratingSummary = false.obs;
   final transcript = ''.obs;
   final keyPoints = <String>[].obs;
   final actionItems = <String>[].obs;
@@ -147,6 +149,8 @@ class SummaryController extends GetxController {
   
   Future<void> _transcribeAudio(String audioPath) async {
     try {
+      isTranscribing.value = true;
+      
       // Read audio file
       final audioFile = File(audioPath);
       if (!await audioFile.exists()) {
@@ -191,11 +195,15 @@ class SummaryController extends GetxController {
       
     } catch (e) {
       throw Exception('Transcription failed: $e');
+    } finally {
+      isTranscribing.value = false;
     }
   }
   
   Future<void> _generateSummary() async {
     try {
+      isGeneratingSummary.value = true;
+      
       // Check if we have a valid API key
       if (dotenv.env['OPENAI_API_KEY'] == null || dotenv.env['OPENAI_API_KEY']!.isEmpty) {
         if (Get.isLogEnable) {
@@ -239,6 +247,8 @@ ${transcript.value}
       }
       // If GPT fails, generate basic summary
       _generateBasicSummary();
+    } finally {
+      isGeneratingSummary.value = false;
     }
   }
   
