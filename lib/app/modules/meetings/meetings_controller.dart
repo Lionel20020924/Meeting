@@ -44,7 +44,24 @@ class MeetingsController extends GetxController {
     try {
       // Load actual meetings from storage
       final storedMeetings = await StorageService.loadMeetings();
-      meetings.value = storedMeetings;
+      
+      // Validate and normalize meeting data
+      final validatedMeetings = <Map<String, dynamic>>[];
+      for (final meeting in storedMeetings) {
+        if (meeting['id'] != null) {
+          // Ensure ID is always a string
+          final normalizedMeeting = Map<String, dynamic>.from(meeting);
+          normalizedMeeting['id'] = meeting['id'].toString();
+          validatedMeetings.add(normalizedMeeting);
+        } else {
+          // Generate ID for meetings without one (legacy data)
+          final normalizedMeeting = Map<String, dynamic>.from(meeting);
+          normalizedMeeting['id'] = DateTime.now().millisecondsSinceEpoch.toString();
+          validatedMeetings.add(normalizedMeeting);
+        }
+      }
+      
+      meetings.value = validatedMeetings;
       _applyFiltersAndSort();
     } catch (e) {
       if (Get.isLogEnable) {
@@ -211,10 +228,12 @@ class MeetingsController extends GetxController {
         );
 
         // Delete from storage (this also deletes the audio file)
-        await StorageService.deleteMeeting(meeting['id']);
+        final meetingId = meeting['id'].toString(); // Ensure consistent ID type
+        await StorageService.deleteMeeting(meetingId);
 
-        // Remove from local list
-        meetings.removeWhere((m) => m['id'] == meeting['id']);
+        // Remove from local list and refresh filtered list
+        meetings.removeWhere((m) => m['id'].toString() == meetingId);
+        _applyFiltersAndSort(); // Refresh filtered list
 
         // Close loading dialog
         Get.back();
@@ -253,16 +272,24 @@ class MeetingsController extends GetxController {
   }
 
   void toggleMeetingSelection(String meetingId) {
-    if (selectedMeetings.contains(meetingId)) {
-      selectedMeetings.remove(meetingId);
+    // Ensure consistent ID type
+    final idString = meetingId.toString();
+    if (selectedMeetings.contains(idString)) {
+      selectedMeetings.remove(idString);
     } else {
-      selectedMeetings.add(meetingId);
+      selectedMeetings.add(idString);
     }
   }
 
   void selectAll() {
     selectedMeetings.clear();
-    selectedMeetings.addAll(filteredMeetings.map((m) => m['id'].toString()));
+    // Ensure all IDs are consistently converted to strings
+    selectedMeetings.addAll(
+      filteredMeetings
+          .map((m) => m['id'].toString())
+          .where((id) => id.isNotEmpty) // Filter out any invalid IDs
+          .toSet() // Remove duplicates
+    );
   }
 
   void deselectAll() {
@@ -313,30 +340,58 @@ class MeetingsController extends GetxController {
           barrierDismissible: false,
         );
 
-        // Delete each selected meeting
+        // Delete each selected meeting one by one to ensure consistency
+        final List<String> failedDeletions = [];
         for (final meetingId in selectedMeetings) {
-          await StorageService.deleteMeeting(meetingId);
+          try {
+            await StorageService.deleteMeeting(meetingId);
+            // Remove from local list immediately after successful deletion
+            meetings.removeWhere((m) => m['id'].toString() == meetingId);
+          } catch (e) {
+            failedDeletions.add(meetingId);
+            if (Get.isLogEnable) {
+              Get.log('Failed to delete meeting $meetingId: $e');
+            }
+          }
         }
 
-        // Remove from local list
-        meetings.removeWhere((m) => selectedMeetings.contains(m['id'].toString()));
+        // Update filtered list
+        _applyFiltersAndSort();
 
-        // Clear selection and exit selection mode
-        selectedMeetings.clear();
-        isSelectionMode.value = false;
+        // Clear selection and exit selection mode only if all deletions succeeded
+        if (failedDeletions.isEmpty) {
+          selectedMeetings.clear();
+          isSelectionMode.value = false;
+        } else {
+          // Keep only failed deletions selected
+          selectedMeetings.clear();
+          selectedMeetings.addAll(failedDeletions);
+        }
 
         // Close loading dialog
         Get.back();
 
-        // Show success message
-        Get.snackbar(
-          'Success',
-          'Selected meetings deleted successfully',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.green,
-          colorText: Colors.white,
-          duration: const Duration(seconds: 2),
-        );
+        // Show appropriate message based on results
+        if (failedDeletions.isEmpty) {
+          Get.snackbar(
+            'Success',
+            'All selected meetings deleted successfully',
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: Colors.green,
+            colorText: Colors.white,
+            duration: const Duration(seconds: 2),
+          );
+        } else {
+          final successCount = selectedMeetings.length - failedDeletions.length;
+          Get.snackbar(
+            'Partial Success',
+            '$successCount meetings deleted, ${failedDeletions.length} failed',
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: Colors.orange,
+            colorText: Colors.white,
+            duration: const Duration(seconds: 3),
+          );
+        }
       } catch (e) {
         // Close loading dialog
         Get.back();

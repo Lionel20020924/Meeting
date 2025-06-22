@@ -96,29 +96,42 @@ class StorageService {
   /// Delete a meeting and its audio file
   static Future<void> deleteMeeting(String meetingId) async {
     try {
+      // Ensure meetingId is a string for consistent comparison
+      final idToDelete = meetingId.toString();
+      
       // Load meetings
       List<Map<String, dynamic>> meetings = await loadMeetings();
       
-      // Find and remove the meeting
-      final meetingIndex = meetings.indexWhere((m) => m['id'] == meetingId);
-      if (meetingIndex != -1) {
-        final meeting = meetings[meetingIndex];
-        
-        // Delete audio file if exists
-        if (meeting['audioPath'] != null) {
+      // Find and remove the meeting (ensure consistent ID comparison)
+      final meetingIndex = meetings.indexWhere((m) => m['id'].toString() == idToDelete);
+      if (meetingIndex == -1) {
+        throw Exception('Meeting with ID $idToDelete not found');
+      }
+      
+      final meeting = meetings[meetingIndex];
+      
+      // Delete audio file if exists
+      if (meeting['audioPath'] != null && meeting['audioPath'].toString().isNotEmpty) {
+        try {
           final audioFile = File(meeting['audioPath']);
           if (await audioFile.exists()) {
             await audioFile.delete();
           }
+        } catch (audioError) {
+          // Log audio deletion error but don't fail the entire operation
+          // In a production app, you would use a proper logging framework
+          // For now, we'll just ignore the audio deletion error
         }
-        
-        // Remove from list and save
-        meetings.removeAt(meetingIndex);
-        
-        final meetingsDir = await _meetingsDirectory;
-        final file = File('${meetingsDir.path}/$_meetingsFile');
-        await file.writeAsString(jsonEncode(meetings));
       }
+      
+      // Remove from list
+      meetings.removeAt(meetingIndex);
+      
+      // Save updated meetings list
+      final meetingsDir = await _meetingsDirectory;
+      final file = File('${meetingsDir.path}/$_meetingsFile');
+      await file.writeAsString(jsonEncode(meetings));
+      
     } catch (e) {
       throw Exception('Failed to delete meeting: $e');
     }

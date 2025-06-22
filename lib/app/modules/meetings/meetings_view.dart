@@ -444,7 +444,9 @@ class MeetingsView extends GetView<MeetingsController> {
             ? DismissDirection.none
             : DismissDirection.endToStart,
         confirmDismiss: (direction) async {
-          controller.deleteMeeting(meeting);
+          // Call delete and wait for completion
+          await controller.deleteMeeting(meeting);
+          // Return false to prevent automatic dismissal since we handle it in the controller
           return false;
         },
         background: Container(
