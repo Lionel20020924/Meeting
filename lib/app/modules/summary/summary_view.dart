@@ -157,7 +157,18 @@ class SummaryView extends GetView<SummaryController> {
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.mic, color: Theme.of(context).colorScheme.primary),
+                          InkWell(
+                            onTap: controller.togglePlayPause,
+                            borderRadius: BorderRadius.circular(20),
+                            child: Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Obx(() => Icon(
+                                controller.isPlaying.value ? Icons.pause_circle_filled : Icons.play_circle_filled,
+                                color: Theme.of(context).colorScheme.primary,
+                                size: 32,
+                              )),
+                            ),
+                          ),
                           const SizedBox(width: 8),
                           const Text(
                             'Audio Transcription',
@@ -166,9 +177,48 @@ class SummaryView extends GetView<SummaryController> {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
+                          const Spacer(),
+                          // Audio duration display
+                          Obx(() {
+                            if (controller.totalDuration.value.inSeconds > 0) {
+                              return Text(
+                                '${controller.formatDuration(controller.currentPosition.value)} / ${controller.formatDuration(controller.totalDuration.value)}',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey[600],
+                                ),
+                              );
+                            }
+                            return const SizedBox.shrink();
+                          }),
                         ],
                       ),
                       const Divider(height: 24),
+                      // Audio progress bar
+                      Obx(() {
+                        if (controller.totalDuration.value.inSeconds > 0) {
+                          return Column(
+                            children: [
+                              SliderTheme(
+                                data: SliderTheme.of(context).copyWith(
+                                  trackHeight: 4,
+                                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                                  overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
+                                ),
+                                child: Slider(
+                                  value: controller.currentPosition.value.inSeconds.toDouble(),
+                                  max: controller.totalDuration.value.inSeconds.toDouble(),
+                                  onChanged: (value) {
+                                    controller.seekTo(Duration(seconds: value.toInt()));
+                                  },
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                            ],
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      }),
                       Expanded(
                         child: SingleChildScrollView(
                           child: Text(

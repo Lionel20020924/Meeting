@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -20,6 +21,12 @@ class SummaryController extends GetxController {
   final actionItems = <String>[].obs;
   final summary = ''.obs;
   
+  // Audio player
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  final isPlaying = false.obs;
+  final currentPosition = Duration.zero.obs;
+  final totalDuration = Duration.zero.obs;
+  
   @override
   void onInit() {
     super.onInit();
@@ -28,6 +35,14 @@ class SummaryController extends GetxController {
     _processTranscription();
     // Auto-save the meeting data in background
     _autoSaveMeeting();
+    // Initialize audio player listeners
+    _initAudioPlayer();
+  }
+  
+  @override
+  void onClose() {
+    _audioPlayer.dispose();
+    super.onClose();
   }
   
   Future<void> _autoSaveMeeting() async {
@@ -373,5 +388,72 @@ ${transcript.value}
         isLoading.value = false;
       });
     }
+  }
+  
+  // Audio player methods
+  void _initAudioPlayer() {
+    _audioPlayer.onPlayerStateChanged.listen((PlayerState state) {
+      isPlaying.value = state == PlayerState.playing;
+    });
+    
+    _audioPlayer.onPositionChanged.listen((Duration position) {
+      currentPosition.value = position;
+    });
+    
+    _audioPlayer.onDurationChanged.listen((Duration duration) {
+      totalDuration.value = duration;
+    });
+  }
+  
+  Future<void> togglePlayPause() async {
+    try {
+      if (isPlaying.value) {
+        await _audioPlayer.pause();
+      } else {
+        final audioPath = meetingData['audioPath']?.toString();
+        if (audioPath == null || audioPath.isEmpty) {
+          Get.snackbar(
+            'Error',
+            'Audio file not found',
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: Colors.red,
+            colorText: Colors.white,
+          );
+          return;
+        }
+        
+        // Check if audio is already set
+        if (_audioPlayer.state == PlayerState.paused) {
+          await _audioPlayer.resume();
+        } else {
+          await _audioPlayer.play(DeviceFileSource(audioPath));
+        }
+      }
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Failed to play audio: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+  }
+  
+  Future<void> stopAudio() async {
+    await _audioPlayer.stop();
+    currentPosition.value = Duration.zero;
+  }
+  
+  Future<void> seekTo(Duration position) async {
+    await _audioPlayer.seek(position);
+  }
+  
+  String formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final hours = twoDigits(duration.inHours);
+    final minutes = twoDigits(duration.inMinutes.remainder(60));
+    final seconds = twoDigits(duration.inSeconds.remainder(60));
+    return duration.inHours > 0 ? '$hours:$minutes:$seconds' : '$minutes:$seconds';
   }
 }
