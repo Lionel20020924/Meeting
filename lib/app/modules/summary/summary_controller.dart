@@ -24,6 +24,43 @@ class SummaryController extends GetxController {
     // Get the meeting data passed from the recording page
     meetingData = Get.arguments ?? {};
     _processRecording();
+    // Auto-save the meeting data in background
+    _autoSaveMeeting();
+  }
+  
+  Future<void> _autoSaveMeeting() async {
+    // Wait a bit to ensure meeting data is available
+    await Future.delayed(const Duration(milliseconds: 500));
+    
+    try {
+      // Save the basic meeting data immediately
+      await StorageService.saveMeeting(meetingData);
+      
+      // Update with transcript and summary when available
+      ever(transcript, (_) => _updateSavedMeeting());
+      ever(summary, (_) => _updateSavedMeeting());
+    } catch (e) {
+      if (Get.isLogEnable) {
+        Get.log('Error auto-saving meeting: $e');
+      }
+    }
+  }
+  
+  Future<void> _updateSavedMeeting() async {
+    try {
+      // Update meeting data with latest transcript and summary
+      meetingData['transcription'] = transcript.value;
+      meetingData['summary'] = summary.value;
+      meetingData['keyPoints'] = keyPoints.toList();
+      meetingData['actionItems'] = actionItems.toList();
+      
+      // Update in storage
+      await StorageService.updateMeeting(meetingData);
+    } catch (e) {
+      if (Get.isLogEnable) {
+        Get.log('Error updating saved meeting: $e');
+      }
+    }
   }
   
   Future<void> _processRecording() async {
@@ -270,39 +307,10 @@ ${transcript.value}
     }
   }
   
-  Future<void> saveSummary() async {
-    try {
-      // Update meeting data with transcript and summary
-      meetingData['transcription'] = transcript.value;
-      meetingData['summary'] = summary.value;
-      meetingData['keyPoints'] = keyPoints.toList();
-      meetingData['actionItems'] = actionItems.toList();
-      
-      // Save to storage
-      await StorageService.updateMeeting(meetingData);
-      
-      Get.snackbar(
-        'Saved',
-        'Meeting summary saved successfully',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.green,
-        colorText: Colors.white,
-      );
-      
-      // Navigate back to home page
-      Get.offAllNamed(Routes.HOME);
-      
-      // Meetings view in home will refresh automatically
-      
-    } catch (e) {
-      Get.snackbar(
-        'Error',
-        'Failed to save summary: $e',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
-    }
+  void finishAndReturn() {
+    // Simply navigate back to home page
+    // Meeting is already auto-saved
+    Get.offAllNamed(Routes.HOME);
   }
   
   void regenerateSummary() {

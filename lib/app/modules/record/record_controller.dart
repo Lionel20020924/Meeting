@@ -213,8 +213,8 @@ class RecordController extends GetxController {
         'participants': '1',
       };
       
-      // Save to persistent storage
-      await StorageService.saveMeeting(meetingData);
+      // Don't save here - summary page will auto-save
+      // This avoids duplicate entries
       
       // Close loading dialog
       Get.back();

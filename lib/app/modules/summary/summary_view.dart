@@ -50,13 +50,13 @@ class SummaryView extends GetView<SummaryController> {
           );
         }
 
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Meeting info
-              Card(
+        return Column(
+          children: [
+            // Top section: Full Transcript (scrollable)
+            Expanded(
+              flex: 1,
+              child: Card(
+                margin: const EdgeInsets.all(16.0),
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
@@ -64,10 +64,10 @@ class SummaryView extends GetView<SummaryController> {
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.info_outline, color: Theme.of(context).colorScheme.primary),
+                          Icon(Icons.mic, color: Theme.of(context).colorScheme.primary),
                           const SizedBox(width: 8),
                           const Text(
-                            'Meeting Information',
+                            'Audio Transcription',
                             style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
@@ -75,169 +75,12 @@ class SummaryView extends GetView<SummaryController> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 12),
-                      _buildInfoRow('Duration', controller.meetingData['duration'] ?? '00:00'),
-                      _buildInfoRow('Date', DateTime.now().toString().substring(0, 16)),
-                      _buildInfoRow('Participants', '${controller.meetingData['participants'] ?? '1'} person(s)'),
-                    ],
-                  ),
-                ),
-              ),
-              
-              // Summary
-              if (controller.summary.value.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(Icons.summarize, color: Theme.of(context).colorScheme.primary),
-                            const SizedBox(width: 8),
-                            const Text(
-                              'Summary',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          controller.summary.value,
-                          style: const TextStyle(fontSize: 16, height: 1.5),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-              
-              // Key Points
-              if (controller.keyPoints.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(Icons.star_outline, color: Theme.of(context).colorScheme.primary),
-                            const SizedBox(width: 8),
-                            const Text(
-                              'Key Points',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        ...controller.keyPoints.map((point) => Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 4.0),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('• ', style: TextStyle(fontSize: 16)),
-                              Expanded(
-                                child: Text(
-                                  point,
-                                  style: const TextStyle(fontSize: 16),
-                                ),
-                              ),
-                            ],
-                          ),
-                        )),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-              
-              // Action Items
-              if (controller.actionItems.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(Icons.task_alt, color: Theme.of(context).colorScheme.primary),
-                            const SizedBox(width: 8),
-                            const Text(
-                              'Action Items',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        ...controller.actionItems.map((item) => Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 4.0),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Icon(
-                                Icons.check_box_outline_blank,
-                                size: 20,
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  item,
-                                  style: const TextStyle(fontSize: 16),
-                                ),
-                              ),
-                            ],
-                          ),
-                        )),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-              
-              // Full Transcript
-              const SizedBox(height: 16),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.text_snippet, color: Theme.of(context).colorScheme.primary),
-                          const SizedBox(width: 8),
-                          const Text(
-                            'Full Transcript',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Container(
-                        constraints: const BoxConstraints(maxHeight: 300),
+                      const Divider(height: 24),
+                      Expanded(
                         child: SingleChildScrollView(
                           child: Text(
                             controller.transcript.value.isEmpty
-                                ? 'No transcript available'
+                                ? 'Transcribing audio...'
                                 : controller.transcript.value,
                             style: const TextStyle(fontSize: 16, height: 1.5),
                           ),
@@ -247,47 +90,171 @@ class SummaryView extends GetView<SummaryController> {
                   ),
                 ),
               ),
-              
-              const SizedBox(height: 20),
-              SizedBox(
+            ),
+            
+            // Bottom section: Summary (scrollable)
+            Expanded(
+              flex: 1,
+              child: Card(
+                margin: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 16.0),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.summarize, color: Theme.of(context).colorScheme.primary),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'Summary',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Divider(height: 24),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Meeting info
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      controller.meetingData['title'] ?? 'Meeting',
+                                      style: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      children: [
+                                        Icon(Icons.timer, size: 16, color: Colors.grey[600]),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          controller.meetingData['duration'] ?? '00:00',
+                                          style: TextStyle(color: Colors.grey[600]),
+                                        ),
+                                        const SizedBox(width: 16),
+                                        Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          DateTime.now().toString().substring(0, 16),
+                                          style: TextStyle(color: Colors.grey[600]),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              
+                              // Summary text
+                              if (controller.summary.value.isNotEmpty) ...[
+                                const SizedBox(height: 16),
+                                Text(
+                                  controller.summary.value,
+                                  style: const TextStyle(fontSize: 16, height: 1.5),
+                                ),
+                              ],
+                              
+                              // Key Points
+                              if (controller.keyPoints.isNotEmpty) ...[
+                                const SizedBox(height: 20),
+                                const Text(
+                                  'Key Points:',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                ...controller.keyPoints.map((point) => Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 2.0),
+                                  child: Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text('• ', style: TextStyle(fontSize: 14)),
+                                      Expanded(
+                                        child: Text(
+                                          point,
+                                          style: const TextStyle(fontSize: 14),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                )),
+                              ],
+                              
+                              // Action Items  
+                              if (controller.actionItems.isNotEmpty) ...[
+                                const SizedBox(height: 20),
+                                const Text(
+                                  'Action Items:',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                ...controller.actionItems.map((item) => Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 2.0),
+                                  child: Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Icon(
+                                        Icons.check_box_outline_blank,
+                                        size: 16,
+                                        color: Theme.of(context).colorScheme.primary,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Expanded(
+                                        child: Text(
+                                          item,
+                                          style: const TextStyle(fontSize: 14),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                )),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            
+            // Done button
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: SizedBox(
                 width: double.infinity,
                 height: 48,
                 child: ElevatedButton.icon(
-                  onPressed: controller.saveSummary,
-                  icon: const Icon(Icons.save),
-                  label: const Text('Save Summary'),
+                  onPressed: controller.finishAndReturn,
+                  icon: const Icon(Icons.check),
+                  label: const Text('Done'),
                 ),
               ),
-              const SizedBox(height: 20),
-            ],
-          ),
+            ),
+          ],
         );
       }),
-    );
-  }
-  
-  Widget _buildInfoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              color: Colors.grey[600],
-              fontSize: 14,
-            ),
-          ),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
