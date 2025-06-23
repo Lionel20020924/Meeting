@@ -31,6 +31,17 @@ class PostRecordingController extends GetxController {
     super.onInit();
     meetingData = Get.arguments ?? {};
     titleController.text = meetingData['title'] ?? 'Untitled Meeting';
+    
+    // Initialize audio player for embedded preview
+    _initializeAudioPlayer();
+    
+    // Load audio duration
+    final audioPath = meetingData['audioPath']?.toString();
+    if (audioPath != null && audioPath.isNotEmpty) {
+      _audioPlayer.setSourceDeviceFile(audioPath).then((_) {
+        // Duration will be updated via the listener
+      });
+    }
   }
   
   @override
@@ -213,7 +224,8 @@ class PostRecordingController extends GetxController {
     }
     
     _initializeAudioPlayer();
-    _showAudioPreviewDialog();
+    // Start playing immediately in the embedded player
+    _togglePlayPause();
   }
   
   void _initializeAudioPlayer() {
@@ -250,154 +262,6 @@ class PostRecordingController extends GetxController {
     });
   }
   
-  void _showAudioPreviewDialog() {
-    Get.dialog(
-      AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.headphones, color: Colors.blue),
-            SizedBox(width: 8),
-            Text('Audio Preview'),
-          ],
-        ),
-        content: SizedBox(
-          width: 300,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Meeting info
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      meetingData['title'] ?? 'Untitled Meeting',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Duration: ${meetingData['duration'] ?? '00:00'}',
-                      style: const TextStyle(
-                        color: Colors.grey,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-              
-              // Audio controls
-              Obx(() => Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Skip backward button
-                  IconButton(
-                    onPressed: () => _skipBackward(),
-                    icon: const Icon(Icons.replay_10),
-                    tooltip: 'Rewind 10s',
-                  ),
-                  
-                  // Play/Pause button
-                  GestureDetector(
-                    onTap: () => _togglePlayPause(),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.blue,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.blue.withValues(alpha: 0.3),
-                            blurRadius: 8,
-                            spreadRadius: 2,
-                          ),
-                        ],
-                      ),
-                      padding: const EdgeInsets.all(12),
-                      child: Icon(
-                        isPlayingPreview.value ? Icons.pause : Icons.play_arrow,
-                        color: Colors.white,
-                        size: 32,
-                      ),
-                    ),
-                  ),
-                  
-                  // Skip forward button
-                  IconButton(
-                    onPressed: () => _skipForward(),
-                    icon: const Icon(Icons.forward_10),
-                    tooltip: 'Forward 10s',
-                  ),
-                ],
-              )),
-              
-              const SizedBox(height: 16),
-              
-              // Progress bar and time
-              Obx(() {
-                final position = currentPosition.value;
-                final duration = totalDuration.value;
-                final progress = duration.inMilliseconds > 0 
-                    ? position.inMilliseconds / duration.inMilliseconds 
-                    : 0.0;
-                
-                return Column(
-                  children: [
-                    SliderTheme(
-                      data: SliderTheme.of(Get.context!).copyWith(
-                        trackHeight: 4,
-                        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-                        overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
-                      ),
-                      child: Slider(
-                        value: progress.clamp(0.0, 1.0),
-                        onChanged: (value) {
-                          final newPosition = Duration(
-                            milliseconds: (value * duration.inMilliseconds).round(),
-                          );
-                          _seekTo(newPosition);
-                        },
-                      ),
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          _formatDuration(position),
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                        Text(
-                          _formatDuration(duration),
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                      ],
-                    ),
-                  ],
-                );
-              }),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              _stopAudio();
-              Get.back();
-            },
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
   
   Future<void> _togglePlayPause() async {
     try {
@@ -434,6 +298,10 @@ class PostRecordingController extends GetxController {
     await _audioPlayer.seek(position);
   }
   
+  Future<void> seekTo(Duration position) async {
+    await _seekTo(position);
+  }
+  
   Future<void> _skipForward() async {
     final newPosition = currentPosition.value + const Duration(seconds: 10);
     if (newPosition <= totalDuration.value) {
@@ -441,9 +309,21 @@ class PostRecordingController extends GetxController {
     }
   }
   
+  Future<void> skipForward() async {
+    await _skipForward();
+  }
+  
   Future<void> _skipBackward() async {
     final newPosition = currentPosition.value - const Duration(seconds: 10);
     await _seekTo(newPosition.isNegative ? Duration.zero : newPosition);
+  }
+  
+  Future<void> skipBackward() async {
+    await _skipBackward();
+  }
+  
+  Future<void> togglePlayPause() async {
+    await _togglePlayPause();
   }
   
   String _formatDuration(Duration duration) {
