@@ -289,15 +289,28 @@ class SummaryView extends GetView<SummaryController> {
                               )),
                               tooltip: 'Customize Prompt',
                             ),
-                          if (controller.summary.value.isEmpty && controller.transcript.value.isNotEmpty)
-                            ElevatedButton.icon(
-                              onPressed: controller.generateSummaryForFirstTime,
-                              icon: const Icon(Icons.auto_awesome, size: 18),
-                              label: const Text('Generate'),
-                              style: ElevatedButton.styleFrom(
-                                minimumSize: const Size(100, 36),
-                              ),
-                            ),
+                          // Show generating status if summary is being generated
+                          Obx(() {
+                            if (controller.isGeneratingSummary.value) {
+                              return Row(
+                                children: [
+                                  const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Text(
+                                    'Generating...',
+                                    style: TextStyle(fontSize: 14),
+                                  ),
+                                ],
+                              );
+                            }
+                            return const SizedBox.shrink();
+                          }),
                         ],
                       ),
                       const Divider(height: 24),
@@ -398,36 +411,66 @@ class SummaryView extends GetView<SummaryController> {
                                   return const SizedBox.shrink();
                                 }),
                                 Center(
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      const SizedBox(height: 40),
-                                      Icon(
-                                        Icons.summarize_outlined,
-                                        size: 64,
-                                        color: Colors.grey[400],
-                                      ),
-                                      const SizedBox(height: 16),
-                                      Text(
-                                        'No summary generated yet',
-                                        style: TextStyle(
-                                          fontSize: 18,
-                                          color: Colors.grey[600],
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Obx(() => Text(
-                                        controller.isUsingCustomPrompt.value
-                                            ? 'Click "Generate Summary" to use your custom prompt'
-                                            : 'Click "Generate Summary" to create one',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.grey[500],
-                                        ),
-                                        textAlign: TextAlign.center,
-                                      )),
-                                    ],
-                                  ),
+                                  child: Obx(() {
+                                    if (controller.isGeneratingSummary.value) {
+                                      return Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          const SizedBox(height: 40),
+                                          const CircularProgressIndicator(),
+                                          const SizedBox(height: 16),
+                                          Text(
+                                            '正在生成摘要...',
+                                            style: TextStyle(
+                                              fontSize: 18,
+                                              color: Theme.of(context).colorScheme.primary,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            '这可能需要几秒钟时间',
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              color: Colors.grey[600],
+                                            ),
+                                          ),
+                                          const SizedBox(height: 40),
+                                        ],
+                                      );
+                                    } else {
+                                      return Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          const SizedBox(height: 40),
+                                          Icon(
+                                            Icons.summarize_outlined,
+                                            size: 64,
+                                            color: Colors.grey[400],
+                                          ),
+                                          const SizedBox(height: 16),
+                                          Text(
+                                            '暂无摘要',
+                                            style: TextStyle(
+                                              fontSize: 18,
+                                              color: Colors.grey[600],
+                                            ),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            controller.isUsingCustomPrompt.value
+                                                ? '使用自定义提示生成摘要'
+                                                : '正在准备生成摘要',
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              color: Colors.grey[500],
+                                            ),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                          const SizedBox(height: 40),
+                                        ],
+                                      );
+                                    }
+                                  }),
                                 ),
                               ],
                               

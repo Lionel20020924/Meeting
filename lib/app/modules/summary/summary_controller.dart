@@ -43,7 +43,17 @@ class SummaryController extends GetxController {
     super.onInit();
     // Get the meeting data passed from the recording page
     meetingData = Get.arguments ?? {};
-    _processTranscription();
+    
+    // Check if we should auto-generate summary
+    final autoGenerate = meetingData['autoGenerateSummary'] ?? false;
+    
+    _processTranscription().then((_) {
+      // If autoGenerate is true and we have transcription, generate summary automatically
+      if (autoGenerate && transcript.value.isNotEmpty && summary.value.isEmpty) {
+        _generateSummary();
+      }
+    });
+    
     // Auto-save the meeting data in background
     _autoSaveMeeting();
     // Initialize audio player listeners
@@ -130,8 +140,6 @@ class SummaryController extends GetxController {
             Get.log('Using existing transcription and summary data');
           }
         }
-        // Don't generate summary automatically, wait for user action
-        return;
       }
       
       // Check if we have audio path
@@ -421,14 +429,6 @@ ${transcript.value}
     }
   }
   
-  void generateSummaryForFirstTime() {
-    if (transcript.value.isNotEmpty && summary.value.isEmpty) {
-      isLoading.value = true;
-      _generateSummary().then((_) {
-        isLoading.value = false;
-      });
-    }
-  }
   
   // Audio player methods
   void _initAudioPlayer() {

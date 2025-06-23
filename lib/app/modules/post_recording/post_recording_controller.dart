@@ -98,6 +98,9 @@ class PostRecordingController extends GetxController {
       // Save meeting data first
       await StorageService.saveMeeting(meetingData);
       
+      // Add the autoGenerateSummary flag
+      meetingData['autoGenerateSummary'] = true;
+      
       // Navigate directly to summary page - it will handle transcription and summary
       Get.offNamedUntil(
         Routes.SUMMARY,
