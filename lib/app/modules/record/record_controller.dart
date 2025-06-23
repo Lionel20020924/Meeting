@@ -19,6 +19,8 @@ class RecordController extends GetxController {
   final notes = <Map<String, String>>[].obs;
   final transcribedText = ''.obs; // Real-time transcription text
   final isTranscribing = false.obs;
+  final recordingStartTime = Rxn<DateTime>();
+  final elapsedTime = ''.obs;
   
   Timer? _timer;
   Timer? _transcriptionTimer;
@@ -305,6 +307,8 @@ class RecordController extends GetxController {
     notes.clear();
     transcribedText.value = '';
     _recordingPath = null;
+    recordingStartTime.value = null;
+    elapsedTime.value = '';
     _cleanupChunks();
   }
 
@@ -453,14 +457,42 @@ class RecordController extends GetxController {
   }
 
   void _startTimer() {
+    recordingStartTime.value = DateTime.now();
+    _updateElapsedTime();
+    
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!isPaused.value) {
         _seconds++;
-        final minutes = (_seconds ~/ 60).toString().padLeft(2, '0');
-        final seconds = (_seconds % 60).toString().padLeft(2, '0');
-        recordingTime.value = '$minutes:$seconds';
+        final hours = _seconds ~/ 3600;
+        final minutes = (_seconds % 3600) ~/ 60;
+        final seconds = _seconds % 60;
+        
+        if (hours > 0) {
+          recordingTime.value = '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+        } else {
+          recordingTime.value = '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+        }
+        
+        _updateElapsedTime();
       }
     });
+  }
+  
+  void _updateElapsedTime() {
+    if (recordingStartTime.value != null) {
+      final now = DateTime.now();
+      final difference = now.difference(recordingStartTime.value!);
+      
+      if (difference.inMinutes < 1) {
+        elapsedTime.value = 'Just started';
+      } else if (difference.inHours < 1) {
+        final mins = difference.inMinutes;
+        elapsedTime.value = '$mins minute${mins > 1 ? 's' : ''} ago';
+      } else {
+        final hours = difference.inHours;
+        elapsedTime.value = '$hours hour${hours > 1 ? 's' : ''} ago';
+      }
+    }
   }
 
   void toggleAnimation() {

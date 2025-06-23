@@ -36,31 +36,75 @@ class RecordView extends GetView<RecordController> {
                               children: [
                                 if (controller.isRecording.value)
                                   Container(
-                                    margin: const EdgeInsets.only(bottom: 16),
+                                    margin: const EdgeInsets.only(bottom: 20),
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red.withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: Colors.red.withValues(alpha: 0.3),
+                                      ),
+                                    ),
                                     child: Row(
                                       children: [
-                                        Container(
-                                          width: 12,
-                                          height: 12,
+                                        // Animated recording indicator
+                                        TweenAnimationBuilder<double>(
+                                          duration: const Duration(seconds: 1),
+                                          tween: Tween(begin: 0.5, end: 1.0),
+                                          curve: Curves.easeInOut,
+                                          builder: (context, value, child) {
+                                            return Container(
+                                              width: 16,
+                                              height: 16,
+                                              decoration: BoxDecoration(
+                                                color: Colors.red.withValues(alpha: value),
+                                                shape: BoxShape.circle,
+                                              ),
+                                            );
+                                          },
+                                          onEnd: () {
+                                            // Loop animation
+                                            controller.toggleAnimation();
+                                          },
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            const Text(
+                                              'Recording in Progress',
+                                              style: TextStyle(
+                                                color: Colors.red,
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 16,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Obx(() => Text(
+                                              'Duration: ${controller.recordingTime.value}',
+                                              style: TextStyle(
+                                                color: Colors.red[700],
+                                                fontSize: 14,
+                                              ),
+                                            )),
+                                          ],
+                                        ),
+                                        const Spacer(),
+                                        // Large time display
+                                        Obx(() => Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                           decoration: BoxDecoration(
-                                            color: Colors.red,
-                                            shape: BoxShape.circle,
+                                            color: Colors.red.withValues(alpha: 0.15),
+                                            borderRadius: BorderRadius.circular(8),
                                           ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          'Recording...',
-                                          style: TextStyle(
-                                            color: Colors.red,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Obx(() => Text(
-                                          controller.recordingTime.value,
-                                          style: TextStyle(
-                                            color: Colors.grey[600],
-                                            fontSize: 14,
+                                          child: Text(
+                                            controller.recordingTime.value,
+                                            style: const TextStyle(
+                                              color: Colors.red,
+                                              fontSize: 20,
+                                              fontWeight: FontWeight.bold,
+                                              fontFeatures: [FontFeature.tabularFigures()],
+                                            ),
                                           ),
                                         )),
                                       ],
@@ -155,31 +199,95 @@ class RecordView extends GetView<RecordController> {
                             ),
                           ),
                         )
-                      : Center(
+                      : SingleChildScrollView(
+                          padding: const EdgeInsets.all(24),
                           child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(
-                                Icons.mic_none,
-                                size: 80,
-                                color: Colors.grey[300],
+                              const SizedBox(height: 40),
+                              // Welcome animation
+                              TweenAnimationBuilder<double>(
+                                duration: const Duration(milliseconds: 1500),
+                                tween: Tween(begin: 0.0, end: 1.0),
+                                builder: (context, value, child) {
+                                  return Transform.scale(
+                                    scale: 0.8 + (0.2 * value),
+                                    child: Opacity(
+                                      opacity: value,
+                                      child: child,
+                                    ),
+                                  );
+                                },
+                                child: Container(
+                                  width: 120,
+                                  height: 120,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                      colors: [
+                                        Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                                        Theme.of(context).colorScheme.secondary.withValues(alpha: 0.1),
+                                      ],
+                                    ),
+                                  ),
+                                  child: Icon(
+                                    Icons.mic_none,
+                                    size: 60,
+                                    color: Theme.of(context).colorScheme.primary,
+                                  ),
+                                ),
                               ),
-                              const SizedBox(height: 20),
+                              const SizedBox(height: 32),
                               Text(
                                 'Ready to Record',
                                 style: TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.grey[600],
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).colorScheme.onSurface,
                                 ),
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                'Tap the button below to start',
+                                'Start capturing your meeting',
                                 style: TextStyle(
                                   fontSize: 16,
-                                  color: Colors.grey[500],
+                                  color: Colors.grey[600],
                                 ),
+                              ),
+                              const SizedBox(height: 40),
+                              
+                              // Usage tips
+                              _buildTipCard(
+                                context,
+                                Icons.record_voice_over,
+                                'Speak Clearly',
+                                'Position your device 1-2 feet away and speak naturally for best transcription results.',
+                                Colors.blue,
+                              ),
+                              const SizedBox(height: 12),
+                              _buildTipCard(
+                                context,
+                                Icons.note_add,
+                                'Add Notes Anytime',
+                                'Tap the note button during recording to mark important moments.',
+                                Colors.green,
+                              ),
+                              const SizedBox(height: 12),
+                              _buildTipCard(
+                                context,
+                                Icons.translate,
+                                'Automatic Transcription',
+                                'Your speech will be converted to text in real-time (Chinese supported).',
+                                Colors.orange,
+                              ),
+                              const SizedBox(height: 12),
+                              _buildTipCard(
+                                context,
+                                Icons.cloud_done,
+                                'Auto-Save',
+                                'Your recording is automatically saved when you stop.',
+                                Colors.purple,
                               ),
                             ],
                           ),
@@ -292,6 +400,74 @@ class RecordView extends GetView<RecordController> {
                   ],
                 ),
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildTipCard(
+    BuildContext context,
+    IconData icon,
+    String title,
+    String description,
+    Color color,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: color.withValues(alpha: 0.3),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              icon,
+              color: color,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  description,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[600],
+                    height: 1.3,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
