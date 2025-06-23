@@ -513,4 +513,61 @@ ${transcript.value}
     customPrompt.value = '';
     promptController.clear();
   }
+  
+  // Summary sections management
+  bool get hasSummaryContent => 
+      summary.value.isNotEmpty || keyPoints.isNotEmpty || actionItems.isNotEmpty;
+  
+  String get summaryStats {
+    final parts = <String>[];
+    if (summary.value.isNotEmpty) parts.add('Summary');
+    if (keyPoints.isNotEmpty) parts.add('${keyPoints.length} Key Points');
+    if (actionItems.isNotEmpty) parts.add('${actionItems.length} Action Items');
+    return parts.join(' • ');
+  }
+  
+  void clearAllSummaryData() {
+    summary.value = '';
+    keyPoints.clear();
+    actionItems.clear();
+  }
+  
+  void addKeyPoint(String point) {
+    if (point.trim().isNotEmpty && !keyPoints.contains(point.trim())) {
+      keyPoints.add(point.trim());
+      _updateSavedMeeting();
+    }
+  }
+  
+  void removeKeyPoint(int index) {
+    if (index >= 0 && index < keyPoints.length) {
+      keyPoints.removeAt(index);
+      _updateSavedMeeting();
+    }
+  }
+  
+  void addActionItem(String item) {
+    if (item.trim().isNotEmpty && !actionItems.contains(item.trim())) {
+      actionItems.add(item.trim());
+      _updateSavedMeeting();
+    }
+  }
+  
+  void removeActionItem(int index) {
+    if (index >= 0 && index < actionItems.length) {
+      actionItems.removeAt(index);
+      _updateSavedMeeting();
+    }
+  }
+  
+  void toggleActionItemCompletion(int index) {
+    // This could be extended to track completion status
+    // For now, just show visual feedback
+    Get.snackbar(
+      'Action Item',
+      'Mark as completed functionality can be added here',
+      snackPosition: SnackPosition.BOTTOM,
+      duration: const Duration(seconds: 2),
+    );
+  }
 }

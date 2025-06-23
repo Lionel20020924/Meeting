@@ -249,14 +249,32 @@ class SummaryView extends GetView<SummaryController> {
                         children: [
                           Icon(Icons.summarize, color: Theme.of(context).colorScheme.primary),
                           const SizedBox(width: 8),
-                          const Text(
-                            'Summary',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Meeting Analysis',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Obx(() {
+                                  if (controller.hasSummaryContent) {
+                                    return Text(
+                                      controller.summaryStats,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey[600],
+                                      ),
+                                    );
+                                  }
+                                  return const SizedBox.shrink();
+                                }),
+                              ],
                             ),
                           ),
-                          const Spacer(),
                           // Prompt customization button
                           if (controller.transcript.value.isNotEmpty)
                             IconButton(
@@ -275,9 +293,9 @@ class SummaryView extends GetView<SummaryController> {
                             ElevatedButton.icon(
                               onPressed: controller.generateSummaryForFirstTime,
                               icon: const Icon(Icons.auto_awesome, size: 18),
-                              label: const Text('Generate Summary'),
+                              label: const Text('Generate'),
                               style: ElevatedButton.styleFrom(
-                                minimumSize: const Size(140, 36),
+                                minimumSize: const Size(100, 36),
                               ),
                             ),
                         ],
@@ -413,74 +431,18 @@ class SummaryView extends GetView<SummaryController> {
                                 ),
                               ],
                               
-                              // Summary text
-                              if (controller.summary.value.isNotEmpty) ...[
-                                const SizedBox(height: 16),
-                                Text(
-                                  controller.summary.value,
-                                  style: const TextStyle(fontSize: 16, height: 1.5),
-                                ),
-                              ],
-                              
-                              // Key Points
-                              if (controller.keyPoints.isNotEmpty) ...[
+                              // Summary, Key Points, and To-Do sections
+                              if (controller.summary.value.isNotEmpty || controller.keyPoints.isNotEmpty || controller.actionItems.isNotEmpty) ...[
                                 const SizedBox(height: 20),
-                                const Text(
-                                  'Key Points:',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                ...controller.keyPoints.map((point) => Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 2.0),
-                                  child: Row(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Text('• ', style: TextStyle(fontSize: 14)),
-                                      Expanded(
-                                        child: Text(
-                                          point,
-                                          style: const TextStyle(fontSize: 14),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                )),
-                              ],
-                              
-                              // Action Items  
-                              if (controller.actionItems.isNotEmpty) ...[
-                                const SizedBox(height: 20),
-                                const Text(
-                                  'Action Items:',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                ...controller.actionItems.map((item) => Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 2.0),
-                                  child: Row(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Icon(
-                                        Icons.check_box_outline_blank,
-                                        size: 16,
-                                        color: Theme.of(context).colorScheme.primary,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Expanded(
-                                        child: Text(
-                                          item,
-                                          style: const TextStyle(fontSize: 14),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                )),
+                                
+                                // Summary Section
+                                if (controller.summary.value.isNotEmpty) ..._buildSummarySection(context),
+                                
+                                // Key Points Section
+                                if (controller.keyPoints.isNotEmpty) ..._buildKeyPointsSection(context),
+                                
+                                // To-Do List Section
+                                if (controller.actionItems.isNotEmpty) ..._buildToDoSection(context),
                               ],
                             ],
                           ),
@@ -509,6 +471,306 @@ class SummaryView extends GetView<SummaryController> {
         );
       }),
     );
+  }
+  
+  // Build Summary Section
+  List<Widget> _buildSummarySection(BuildContext context) {
+    return [
+      Container(
+        width: double.infinity,
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
+              Theme.of(context).colorScheme.secondaryContainer.withValues(alpha: 0.2),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Icon(
+                    Icons.summarize,
+                    color: Theme.of(context).colorScheme.onPrimary,
+                    size: 16,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Meeting Summary',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              controller.summary.value,
+              style: const TextStyle(
+                fontSize: 15,
+                height: 1.6,
+                letterSpacing: 0.2,
+              ),
+            ),
+          ],
+        ),
+      ),
+    ];
+  }
+  
+  // Build Key Points Section
+  List<Widget> _buildKeyPointsSection(BuildContext context) {
+    return [
+      Container(
+        width: double.infinity,
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Theme.of(context).colorScheme.tertiaryContainer.withValues(alpha: 0.3),
+              Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.2),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.tertiary.withValues(alpha: 0.3),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.tertiary,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Icon(
+                    Icons.lightbulb,
+                    color: Theme.of(context).colorScheme.onTertiary,
+                    size: 16,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Key Points',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.tertiary,
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.tertiary.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${controller.keyPoints.length}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(context).colorScheme.tertiary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            ...controller.keyPoints.asMap().entries.map((entry) {
+              final index = entry.key;
+              final point = entry.value;
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.tertiary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Center(
+                        child: Text(
+                          '${index + 1}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Theme.of(context).colorScheme.tertiary,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        point,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
+    ];
+  }
+  
+  // Build To-Do List Section
+  List<Widget> _buildToDoSection(BuildContext context) {
+    return [
+      Container(
+        width: double.infinity,
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Theme.of(context).colorScheme.secondaryContainer.withValues(alpha: 0.3),
+              Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.2),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.3),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.secondary,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Icon(
+                    Icons.checklist,
+                    color: Theme.of(context).colorScheme.onSecondary,
+                    size: 16,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Action Items',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.secondary,
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${controller.actionItems.length}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(context).colorScheme.secondary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            ...controller.actionItems.map((item) {
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 20,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: Theme.of(context).colorScheme.secondary,
+                          width: 2,
+                        ),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Icon(
+                        Icons.check,
+                        size: 14,
+                        color: Colors.transparent,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        item,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
+    ];
   }
   
   void _showPromptDialog(BuildContext context) {
