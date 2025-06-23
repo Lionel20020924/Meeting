@@ -257,6 +257,20 @@ class SummaryView extends GetView<SummaryController> {
                             ),
                           ),
                           const Spacer(),
+                          // Prompt customization button
+                          if (controller.transcript.value.isNotEmpty)
+                            IconButton(
+                              onPressed: () => _showPromptDialog(context),
+                              icon: Obx(() => Icon(
+                                controller.isUsingCustomPrompt.value 
+                                    ? Icons.edit_note
+                                    : Icons.edit_note_outlined,
+                                color: controller.isUsingCustomPrompt.value 
+                                    ? Theme.of(context).colorScheme.primary
+                                    : Colors.grey[600],
+                              )),
+                              tooltip: 'Customize Prompt',
+                            ),
                           if (controller.summary.value.isEmpty && controller.transcript.value.isNotEmpty)
                             ElevatedButton.icon(
                               onPressed: controller.generateSummaryForFirstTime,
@@ -313,8 +327,58 @@ class SummaryView extends GetView<SummaryController> {
                                 ),
                               ),
                               
-                              // Show prompt if no summary
+                              // Show prompt indicator and no summary message
                               if (controller.summary.value.isEmpty && controller.transcript.value.isNotEmpty) ...[
+                                // Custom prompt indicator
+                                Obx(() {
+                                  if (controller.isUsingCustomPrompt.value && controller.customPrompt.value.isNotEmpty) {
+                                    return Container(
+                                      margin: const EdgeInsets.only(top: 16, bottom: 8),
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+                                        ),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Icon(
+                                                Icons.edit_note,
+                                                size: 16,
+                                                color: Theme.of(context).colorScheme.primary,
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                'Custom Prompt Active',
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Theme.of(context).colorScheme.primary,
+                                                  fontSize: 12,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            controller.customPrompt.value.length > 100
+                                                ? '${controller.customPrompt.value.substring(0, 100)}...'
+                                                : controller.customPrompt.value,
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey[700],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  }
+                                  return const SizedBox.shrink();
+                                }),
                                 Center(
                                   child: Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
@@ -334,13 +398,16 @@ class SummaryView extends GetView<SummaryController> {
                                         ),
                                       ),
                                       const SizedBox(height: 8),
-                                      Text(
-                                        'Click "Generate Summary" to create one',
+                                      Obx(() => Text(
+                                        controller.isUsingCustomPrompt.value
+                                            ? 'Click "Generate Summary" to use your custom prompt'
+                                            : 'Click "Generate Summary" to create one',
                                         style: TextStyle(
                                           fontSize: 14,
                                           color: Colors.grey[500],
                                         ),
-                                      ),
+                                        textAlign: TextAlign.center,
+                                      )),
                                     ],
                                   ),
                                 ),
@@ -441,6 +508,141 @@ class SummaryView extends GetView<SummaryController> {
           ],
         );
       }),
+    );
+  }
+  
+  void _showPromptDialog(BuildContext context) {
+    // Initialize prompt controller with current custom prompt
+    final controller = Get.find<SummaryController>();
+    controller.promptController.text = controller.customPrompt.value;
+    
+    Get.dialog(
+      AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.edit_note),
+            SizedBox(width: 8),
+            Text('Customize Summary Prompt'),
+          ],
+        ),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Toggle between default and custom prompt
+              Obx(() => SwitchListTile(
+                title: const Text('Use Custom Prompt'),
+                subtitle: Text(
+                  controller.isUsingCustomPrompt.value
+                      ? 'Custom prompt will be used for summary generation'
+                      : 'Default structured prompt will be used',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                value: controller.isUsingCustomPrompt.value,
+                onChanged: (value) => controller.toggleCustomPrompt(),
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+              )),
+              const SizedBox(height: 16),
+              // Custom prompt text field
+              Obx(() {
+                if (controller.isUsingCustomPrompt.value) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Custom Prompt:',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: controller.promptController,
+                        maxLines: 6,
+                        decoration: const InputDecoration(
+                          hintText: 'Enter your custom prompt here...\n\nExample: "Analyze this meeting and focus on technical decisions and next steps"',
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.all(12),
+                        ),
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Note: The meeting transcript will be automatically appended to your prompt.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ],
+                  );
+                } else {
+                  return Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Default Prompt:',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'The default prompt will analyze the transcript and provide:\n• Brief summary (2-3 sentences)\n• Key points discussed\n• Action items identified',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+              }),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text('Cancel'),
+          ),
+          if (controller.isUsingCustomPrompt.value)
+            TextButton(
+              onPressed: () {
+                controller.resetToDefaultPrompt();
+                Get.back();
+              },
+              child: const Text('Reset to Default'),
+            ),
+          ElevatedButton(
+            onPressed: () {
+              if (controller.isUsingCustomPrompt.value) {
+                controller.saveCustomPrompt();
+              }
+              Get.back();
+            },
+            child: Text(
+              controller.isUsingCustomPrompt.value ? 'Save Prompt' : 'Done',
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

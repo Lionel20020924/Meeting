@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -10,6 +12,12 @@ class PostRecordingController extends GetxController {
   final RxBool isSaving = false.obs;
   final RxBool isEditingTitle = false.obs;
   final TextEditingController titleController = TextEditingController();
+  
+  // Audio player for preview
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  final RxBool isPlayingPreview = false.obs;
+  final Rx<Duration> currentPosition = Duration.zero.obs;
+  final Rx<Duration> totalDuration = Duration.zero.obs;
 
   @override
   void onInit() {
@@ -21,6 +29,7 @@ class PostRecordingController extends GetxController {
   @override
   void onClose() {
     titleController.dispose();
+    _audioPlayer.dispose();
     super.onClose();
   }
 
@@ -160,37 +169,258 @@ class PostRecordingController extends GetxController {
   }
   
   void playPreview() {
+    final audioPath = meetingData['audioPath']?.toString();
+    
+    if (audioPath == null || audioPath.isEmpty) {
+      Get.snackbar(
+        'Error',
+        'No audio file found for preview',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return;
+    }
+    
+    // Check if audio file exists
+    final audioFile = File(audioPath);
+    if (!audioFile.existsSync()) {
+      Get.snackbar(
+        'Error',
+        'Audio file not found at specified path',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return;
+    }
+    
+    _initializeAudioPlayer();
+    _showAudioPreviewDialog();
+  }
+  
+  void _initializeAudioPlayer() {
+    // Set up audio player listeners
+    _audioPlayer.onPlayerStateChanged.listen((PlayerState state) {
+      isPlayingPreview.value = state == PlayerState.playing;
+    });
+    
+    _audioPlayer.onPositionChanged.listen((Duration position) {
+      currentPosition.value = position;
+    });
+    
+    _audioPlayer.onDurationChanged.listen((Duration duration) {
+      totalDuration.value = duration;
+    });
+    
+    _audioPlayer.onPlayerComplete.listen((_) {
+      isPlayingPreview.value = false;
+      currentPosition.value = Duration.zero;
+    });
+  }
+  
+  void _showAudioPreviewDialog() {
     Get.dialog(
       AlertDialog(
-        title: const Text('Preview Meeting'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
+        title: const Row(
           children: [
-            const Icon(
-              Icons.play_circle_filled,
-              size: 64,
-              color: Colors.blue,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Playing: ${meetingData['title'] ?? 'Untitled Meeting'}',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Duration: ${meetingData['duration'] ?? '00:00'}',
-              style: const TextStyle(color: Colors.grey),
-            ),
+            Icon(Icons.headphones, color: Colors.blue),
+            SizedBox(width: 8),
+            Text('Audio Preview'),
           ],
+        ),
+        content: SizedBox(
+          width: 300,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Meeting info
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      meetingData['title'] ?? 'Untitled Meeting',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Duration: ${meetingData['duration'] ?? '00:00'}',
+                      style: const TextStyle(
+                        color: Colors.grey,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              
+              // Audio controls
+              Obx(() => Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Skip backward button
+                  IconButton(
+                    onPressed: () => _skipBackward(),
+                    icon: const Icon(Icons.replay_10),
+                    tooltip: 'Rewind 10s',
+                  ),
+                  
+                  // Play/Pause button
+                  GestureDetector(
+                    onTap: () => _togglePlayPause(),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.blue,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.blue.withValues(alpha: 0.3),
+                            blurRadius: 8,
+                            spreadRadius: 2,
+                          ),
+                        ],
+                      ),
+                      padding: const EdgeInsets.all(12),
+                      child: Icon(
+                        isPlayingPreview.value ? Icons.pause : Icons.play_arrow,
+                        color: Colors.white,
+                        size: 32,
+                      ),
+                    ),
+                  ),
+                  
+                  // Skip forward button
+                  IconButton(
+                    onPressed: () => _skipForward(),
+                    icon: const Icon(Icons.forward_10),
+                    tooltip: 'Forward 10s',
+                  ),
+                ],
+              )),
+              
+              const SizedBox(height: 16),
+              
+              // Progress bar and time
+              Obx(() {
+                final position = currentPosition.value;
+                final duration = totalDuration.value;
+                final progress = duration.inMilliseconds > 0 
+                    ? position.inMilliseconds / duration.inMilliseconds 
+                    : 0.0;
+                
+                return Column(
+                  children: [
+                    SliderTheme(
+                      data: SliderTheme.of(Get.context!).copyWith(
+                        trackHeight: 4,
+                        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                        overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
+                      ),
+                      child: Slider(
+                        value: progress.clamp(0.0, 1.0),
+                        onChanged: (value) {
+                          final newPosition = Duration(
+                            milliseconds: (value * duration.inMilliseconds).round(),
+                          );
+                          _seekTo(newPosition);
+                        },
+                      ),
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          _formatDuration(position),
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        Text(
+                          _formatDuration(duration),
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ],
+                );
+              }),
+            ],
+          ),
         ),
         actions: [
           TextButton(
-            onPressed: () => Get.back(),
+            onPressed: () {
+              _stopAudio();
+              Get.back();
+            },
             child: const Text('Close'),
           ),
         ],
       ),
     );
+  }
+  
+  Future<void> _togglePlayPause() async {
+    try {
+      final audioPath = meetingData['audioPath']?.toString();
+      if (audioPath == null) return;
+      
+      if (isPlayingPreview.value) {
+        await _audioPlayer.pause();
+      } else {
+        if (_audioPlayer.state == PlayerState.paused) {
+          await _audioPlayer.resume();
+        } else {
+          await _audioPlayer.play(DeviceFileSource(audioPath));
+        }
+      }
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Failed to play audio: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+  }
+  
+  Future<void> _stopAudio() async {
+    await _audioPlayer.stop();
+    isPlayingPreview.value = false;
+    currentPosition.value = Duration.zero;
+  }
+  
+  Future<void> _seekTo(Duration position) async {
+    await _audioPlayer.seek(position);
+  }
+  
+  Future<void> _skipForward() async {
+    final newPosition = currentPosition.value + const Duration(seconds: 10);
+    if (newPosition <= totalDuration.value) {
+      await _seekTo(newPosition);
+    }
+  }
+  
+  Future<void> _skipBackward() async {
+    final newPosition = currentPosition.value - const Duration(seconds: 10);
+    await _seekTo(newPosition.isNegative ? Duration.zero : newPosition);
+  }
+  
+  String _formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final hours = twoDigits(duration.inHours);
+    final minutes = twoDigits(duration.inMinutes.remainder(60));
+    final seconds = twoDigits(duration.inSeconds.remainder(60));
+    return duration.inHours > 0 ? '$hours:$minutes:$seconds' : '$minutes:$seconds';
   }
   
   void shareRecording() {

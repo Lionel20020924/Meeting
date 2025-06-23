@@ -21,6 +21,11 @@ class SummaryController extends GetxController {
   final actionItems = <String>[].obs;
   final summary = ''.obs;
   
+  // Prompt customization
+  final customPrompt = ''.obs;
+  final isUsingCustomPrompt = false.obs;
+  final promptController = TextEditingController();
+  
   // Audio player
   final AudioPlayer _audioPlayer = AudioPlayer();
   final isPlaying = false.obs;
@@ -42,6 +47,7 @@ class SummaryController extends GetxController {
   @override
   void onClose() {
     _audioPlayer.dispose();
+    promptController.dispose();
     super.onClose();
   }
   
@@ -222,8 +228,18 @@ class SummaryController extends GetxController {
         return;
       }
       
-      // Generate summary using GPT
-      final prompt = '''
+      // Generate summary using GPT with custom or default prompt
+      String prompt;
+      
+      if (isUsingCustomPrompt.value && customPrompt.value.isNotEmpty) {
+        // Use custom prompt with transcript
+        prompt = '''${customPrompt.value}
+
+Transcript:
+${transcript.value}''';
+      } else {
+        // Use default prompt
+        prompt = '''
 Please analyze the following meeting transcript and provide:
 
 1. A brief summary (2-3 sentences)
@@ -240,6 +256,7 @@ Format your response as JSON with the following structure:
 Transcript:
 ${transcript.value}
 ''';
+      }
       
       final response = await OpenAIService.generateChatCompletion(
         prompt: prompt,
@@ -248,7 +265,15 @@ ${transcript.value}
       );
       
       // Parse the response
-      _parseGPTResponse(response);
+      if (isUsingCustomPrompt.value && customPrompt.value.isNotEmpty) {
+        // For custom prompts, just use the raw response as summary
+        summary.value = response;
+        keyPoints.clear();
+        actionItems.clear();
+      } else {
+        // Parse structured JSON response for default prompt
+        _parseGPTResponse(response);
+      }
       
     } catch (e) {
       if (Get.isLogEnable) {
@@ -455,5 +480,37 @@ ${transcript.value}
     final minutes = twoDigits(duration.inMinutes.remainder(60));
     final seconds = twoDigits(duration.inSeconds.remainder(60));
     return duration.inHours > 0 ? '$hours:$minutes:$seconds' : '$minutes:$seconds';
+  }
+  
+  // Prompt customization methods
+  void toggleCustomPrompt() {
+    isUsingCustomPrompt.value = !isUsingCustomPrompt.value;
+    if (isUsingCustomPrompt.value && customPrompt.value.isEmpty) {
+      // Set default custom prompt
+      customPrompt.value = 'Please analyze the following meeting transcript and provide a detailed summary with key insights:';
+      promptController.text = customPrompt.value;
+    }
+  }
+  
+  void updateCustomPrompt(String prompt) {
+    customPrompt.value = prompt;
+  }
+  
+  void saveCustomPrompt() {
+    customPrompt.value = promptController.text;
+    Get.snackbar(
+      'Prompt Saved',
+      'Custom prompt has been saved',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.green,
+      colorText: Colors.white,
+      duration: const Duration(seconds: 2),
+    );
+  }
+  
+  void resetToDefaultPrompt() {
+    isUsingCustomPrompt.value = false;
+    customPrompt.value = '';
+    promptController.clear();
   }
 }
