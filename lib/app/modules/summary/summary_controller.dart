@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:audioplayers/audioplayers.dart';
@@ -32,6 +33,11 @@ class SummaryController extends GetxController {
   final currentPosition = Duration.zero.obs;
   final totalDuration = Duration.zero.obs;
   
+  // Stream subscriptions
+  StreamSubscription<PlayerState>? _playerStateSubscription;
+  StreamSubscription<Duration>? _positionSubscription;
+  StreamSubscription<Duration>? _durationSubscription;
+  
   @override
   void onInit() {
     super.onInit();
@@ -46,7 +52,16 @@ class SummaryController extends GetxController {
   
   @override
   void onClose() {
+    // Cancel stream subscriptions first
+    _playerStateSubscription?.cancel();
+    _positionSubscription?.cancel();
+    _durationSubscription?.cancel();
+    
+    // Stop and dispose audio player
+    _audioPlayer.stop();
     _audioPlayer.dispose();
+    
+    // Dispose text controller
     promptController.dispose();
     super.onClose();
   }
@@ -417,16 +432,22 @@ ${transcript.value}
   
   // Audio player methods
   void _initAudioPlayer() {
-    _audioPlayer.onPlayerStateChanged.listen((PlayerState state) {
-      isPlaying.value = state == PlayerState.playing;
+    _playerStateSubscription = _audioPlayer.onPlayerStateChanged.listen((PlayerState state) {
+      if (!isClosed) {
+        isPlaying.value = state == PlayerState.playing;
+      }
     });
     
-    _audioPlayer.onPositionChanged.listen((Duration position) {
-      currentPosition.value = position;
+    _positionSubscription = _audioPlayer.onPositionChanged.listen((Duration position) {
+      if (!isClosed) {
+        currentPosition.value = position;
+      }
     });
     
-    _audioPlayer.onDurationChanged.listen((Duration duration) {
-      totalDuration.value = duration;
+    _durationSubscription = _audioPlayer.onDurationChanged.listen((Duration duration) {
+      if (!isClosed) {
+        totalDuration.value = duration;
+      }
     });
   }
   

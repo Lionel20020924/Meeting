@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -23,6 +24,11 @@ class MeetingDetailController extends GetxController {
   final RxBool showSearch = false.obs;
   final TextEditingController searchController = TextEditingController();
   final RxString highlightedTranscription = ''.obs;
+  
+  // Stream subscriptions
+  StreamSubscription<Duration>? _positionSubscription;
+  StreamSubscription<Duration>? _durationSubscription;
+  StreamSubscription<void>? _playerCompleteSubscription;
 
   @override
   void onInit() {
@@ -35,23 +41,38 @@ class MeetingDetailController extends GetxController {
     }
     
     // Setup audio player listeners
-    audioPlayer.onPositionChanged.listen((pos) {
-      position.value = pos;
+    _positionSubscription = audioPlayer.onPositionChanged.listen((pos) {
+      if (!isClosed) {
+        position.value = pos;
+      }
     });
     
-    audioPlayer.onDurationChanged.listen((dur) {
-      duration.value = dur;
+    _durationSubscription = audioPlayer.onDurationChanged.listen((dur) {
+      if (!isClosed) {
+        duration.value = dur;
+      }
     });
     
-    audioPlayer.onPlayerComplete.listen((_) {
-      isPlaying.value = false;
-      position.value = Duration.zero;
+    _playerCompleteSubscription = audioPlayer.onPlayerComplete.listen((_) {
+      if (!isClosed) {
+        isPlaying.value = false;
+        position.value = Duration.zero;
+      }
     });
   }
 
   @override
   void onClose() {
+    // Cancel stream subscriptions first
+    _positionSubscription?.cancel();
+    _durationSubscription?.cancel();
+    _playerCompleteSubscription?.cancel();
+    
+    // Stop and dispose audio player
+    audioPlayer.stop();
     audioPlayer.dispose();
+    
+    // Dispose text controller
     searchController.dispose();
     super.onClose();
   }
