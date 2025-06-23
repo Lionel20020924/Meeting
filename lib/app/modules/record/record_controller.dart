@@ -154,15 +154,17 @@ class RecordController extends GetxController {
 
   void _showSaveDialog() {
     // Recording is already stopped at this point
+    // Generate automatic title based on current time and duration
+    _generateAutoTitle();
     
     Get.dialog(
       AlertDialog(
-        title: const Text('Save Recording'),
+        title: const Text('保存录音'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'Recording Duration: ${recordingTime.value}',
+              '录音时长: ${recordingTime.value}',
               style: const TextStyle(
                 fontWeight: FontWeight.w500,
               ),
@@ -172,8 +174,8 @@ class RecordController extends GetxController {
               controller: titleController,
               autofocus: true,
               decoration: const InputDecoration(
-                labelText: 'Meeting Title',
-                hintText: 'Enter a title for this meeting',
+                labelText: '会议标题',
+                hintText: '可以修改自动生成的标题',
                 prefixIcon: Icon(Icons.title),
               ),
               textInputAction: TextInputAction.done,
@@ -188,13 +190,13 @@ class RecordController extends GetxController {
               _discardRecording();
             },
             child: const Text(
-              'Discard',
+              '丢弃',
               style: TextStyle(color: Colors.red),
             ),
           ),
           ElevatedButton(
             onPressed: _saveRecording,
-            child: const Text('Save'),
+            child: const Text('保存'),
           ),
         ],
       ),
@@ -205,8 +207,8 @@ class RecordController extends GetxController {
   Future<void> _saveRecording() async {
     if (titleController.text.isEmpty) {
       Get.snackbar(
-        'Error',
-        'Please enter a meeting title',
+        '错误',
+        '请输入会议标题',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red,
         colorText: Colors.white,
@@ -551,5 +553,15 @@ class RecordController extends GetxController {
   void _stopRealtimeTranscription() {
     _transcriptionTimer?.cancel();
     _transcriptionTimer = null;
+  }
+  
+  void _generateAutoTitle() {
+    final now = DateTime.now();
+    final dateStr = '${now.month.toString().padLeft(2, '0')}月${now.day.toString().padLeft(2, '0')}日';
+    final timeStr = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+    final duration = recordingTime.value;
+    
+    // Generate title based on time and duration
+    titleController.text = '$dateStr $timeStr 会议 ($duration)';
   }
 }
