@@ -6,7 +6,7 @@ import 'package:get/get.dart';
 import 'package:audioplayers/audioplayers.dart';
 
 import '../../routes/app_pages.dart';
-import '../../services/openai_service.dart';
+import '../../services/transcription_service.dart';
 import '../../services/storage_service.dart';
 
 class MeetingDetailController extends GetxController {
@@ -131,8 +131,8 @@ class MeetingDetailController extends GetxController {
       // Read audio file
       final audioData = await audioFile.readAsBytes();
       
-      // Transcribe using OpenAI (Chinese)
-      final result = await OpenAIService.transcribeAudio(
+      // Transcribe using available service (WhisperX preferred, fallback to OpenAI)
+      final result = await TranscriptionService.transcribeAudioSimple(
         audioData: audioData,
         language: 'zh',
       );

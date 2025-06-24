@@ -8,7 +8,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../../routes/app_pages.dart';
 import '../../services/storage_service.dart';
-import '../../services/openai_service.dart';
+import '../../services/transcription_service.dart';
 
 class RecordController extends GetxController {
   final titleController = TextEditingController();
@@ -530,8 +530,8 @@ class RecordController extends GetxController {
       // Read current recording
       final audioData = await audioFile.readAsBytes();
       
-      // Transcribe using OpenAI Whisper (Chinese)
-      final transcription = await OpenAIService.transcribeAudio(
+      // Transcribe using available transcription service (WhisperX preferred, fallback to OpenAI)
+      final transcription = await TranscriptionService.transcribeAudioSimple(
         audioData: audioData,
         language: 'zh',
       );

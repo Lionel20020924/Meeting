@@ -9,6 +9,7 @@ import 'package:get/get.dart';
 
 import '../../routes/app_pages.dart';
 import '../../services/openai_service.dart';
+import '../../services/transcription_service.dart';
 import '../../services/storage_service.dart';
 
 class SummaryController extends GetxController {
@@ -202,17 +203,18 @@ class SummaryController extends GetxController {
       
       final audioData = await audioFile.readAsBytes();
       
-      // Check API key
-      if (dotenv.env['OPENAI_API_KEY'] == null || dotenv.env['OPENAI_API_KEY']!.isEmpty) {
-        throw Exception('OpenAI API key not configured');
+      // Check if any transcription service is available
+      final availableServices = TranscriptionService.getAvailableServices();
+      if (!availableServices.values.any((available) => available)) {
+        throw Exception('No transcription service configured (need REPLICATE_API_KEY or OPENAI_API_KEY)');
       }
       
       if (Get.isLogEnable) {
-        Get.log('Starting transcription with Whisper API...');
+        Get.log('Starting transcription with available service...');
       }
       
-      // Transcribe using OpenAI Whisper (Chinese)
-      final transcription = await OpenAIService.transcribeAudio(
+      // Transcribe using available service (WhisperX preferred, fallback to OpenAI)
+      final transcription = await TranscriptionService.transcribeAudioSimple(
         audioData: audioData,
         language: 'zh',
       );
