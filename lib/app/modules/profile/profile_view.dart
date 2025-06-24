@@ -132,38 +132,98 @@ class ProfileView extends GetView<ProfileController> {
                           ],
                         ),
                         const SizedBox(height: 16),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            _buildStatItem(
-                              context,
-                              'Total',
-                              controller.totalMeetings.value.toString(),
-                              Icons.video_library,
-                              Colors.blue,
-                            ),
-                            _buildStatItem(
-                              context,
-                              'This Week',
-                              controller.weeklyMeetings.value.toString(),
-                              Icons.calendar_today,
-                              Colors.green,
-                            ),
-                            _buildStatItem(
-                              context,
-                              'This Month',
-                              controller.monthlyMeetings.value.toString(),
-                              Icons.date_range,
-                              Colors.orange,
-                            ),
-                            _buildStatItem(
-                              context,
-                              'Avg Duration',
-                              controller.formatDuration(controller.averageDuration.value),
-                              Icons.timer,
-                              Colors.purple,
-                            ),
-                          ],
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            final isSmallScreen = constraints.maxWidth < 400;
+                            if (isSmallScreen) {
+                              // 小屏幕使用2x2网格
+                              return GridView.count(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                crossAxisCount: 2,
+                                mainAxisSpacing: 12,
+                                crossAxisSpacing: 12,
+                                childAspectRatio: 1.5,
+                                children: [
+                                  _buildStatItem(
+                                    context,
+                                    'Total',
+                                    controller.totalMeetings.value.toString(),
+                                    Icons.video_library,
+                                    Colors.blue,
+                                    isCompact: true,
+                                  ),
+                                  _buildStatItem(
+                                    context,
+                                    'This Week',
+                                    controller.weeklyMeetings.value.toString(),
+                                    Icons.calendar_today,
+                                    Colors.green,
+                                    isCompact: true,
+                                  ),
+                                  _buildStatItem(
+                                    context,
+                                    'This Month',
+                                    controller.monthlyMeetings.value.toString(),
+                                    Icons.date_range,
+                                    Colors.orange,
+                                    isCompact: true,
+                                  ),
+                                  _buildStatItem(
+                                    context,
+                                    'Avg Duration',
+                                    controller.formatDuration(controller.averageDuration.value),
+                                    Icons.timer,
+                                    Colors.purple,
+                                    isCompact: true,
+                                  ),
+                                ],
+                              );
+                            } else {
+                              // 大屏幕使用横向排列
+                              return Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                                children: [
+                                  Expanded(
+                                    child: _buildStatItem(
+                                      context,
+                                      'Total',
+                                      controller.totalMeetings.value.toString(),
+                                      Icons.video_library,
+                                      Colors.blue,
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: _buildStatItem(
+                                      context,
+                                      'This Week',
+                                      controller.weeklyMeetings.value.toString(),
+                                      Icons.calendar_today,
+                                      Colors.green,
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: _buildStatItem(
+                                      context,
+                                      'This Month',
+                                      controller.monthlyMeetings.value.toString(),
+                                      Icons.date_range,
+                                      Colors.orange,
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: _buildStatItem(
+                                      context,
+                                      'Avg Duration',
+                                      controller.formatDuration(controller.averageDuration.value),
+                                      Icons.timer,
+                                      Colors.purple,
+                                    ),
+                                  ),
+                                ],
+                              );
+                            }
+                          },
                         ),
                       ],
                     ),
@@ -426,36 +486,50 @@ class ProfileView extends GetView<ProfileController> {
     String label,
     String value,
     IconData icon,
-    Color color,
-  ) {
+    Color color, {
+    bool isCompact = false,
+  }) {
     return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Container(
-          padding: const EdgeInsets.all(12),
+          padding: EdgeInsets.all(isCompact ? 8 : 12),
           decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
+            color: color.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: color.withValues(alpha: 0.2),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: Icon(
             icon,
             color: color,
-            size: 24,
+            size: isCompact ? 20 : 24,
           ),
         ),
-        const SizedBox(height: 8),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
+        SizedBox(height: isCompact ? 4 : 8),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            value,
+            style: TextStyle(
+              fontSize: isCompact ? 16 : 20,
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
           ),
         ),
         Text(
           label,
           style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[600],
+            fontSize: isCompact ? 10 : 12,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
+          overflow: TextOverflow.ellipsis,
         ),
       ],
     );

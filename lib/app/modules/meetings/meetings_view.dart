@@ -19,8 +19,9 @@ class MeetingsView extends GetView<MeetingsController> {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Theme.of(context).colorScheme.primary.withOpacity(0.05),
+                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                   Theme.of(context).colorScheme.surface,
+                  Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
                 ],
               ),
             ),
@@ -47,7 +48,7 @@ class MeetingsView extends GetView<MeetingsController> {
 
   Widget _buildSliverAppBar(BuildContext context) {
     return Obx(() => SliverAppBar(
-      expandedHeight: controller.isSelectionMode.value ? 60 : 120,
+      expandedHeight: controller.isSelectionMode.value ? 60 : 160,
       floating: true,
       pinned: true,
       backgroundColor: Theme.of(context).colorScheme.surface,
@@ -61,8 +62,10 @@ class MeetingsView extends GetView<MeetingsController> {
       title: controller.isSelectionMode.value
           ? Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Text('${controller.selectedMeetings.length} selected'),
+                Text('${controller.selectedMeetings.length} selected',
+                  style: Theme.of(context).textTheme.titleMedium),
                 Text(
                   '${controller.meetings.length} total',
                   style: Theme.of(context).textTheme.bodySmall,
@@ -76,47 +79,63 @@ class MeetingsView extends GetView<MeetingsController> {
       flexibleSpace: FlexibleSpaceBar(
         background: controller.isSelectionMode.value
             ? null
-            : Container(
-                padding: const EdgeInsets.fromLTRB(16, 80, 16, 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'My Meetings',
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    // Search bar
-                    Container(
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(
-                          color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+            : LayoutBuilder(
+                builder: (context, constraints) {
+                  return Container(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Flexible(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'My Meetings',
+                                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: constraints.maxWidth < 350 ? 24 : null,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              // Search bar
+                              Container(
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(22),
+                                  border: Border.all(
+                                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+                                  ),
+                                ),
+                                child: TextField(
+                                  controller: controller.searchController,
+                                  onChanged: controller.searchMeetings,
+                                  style: const TextStyle(fontSize: 14),
+                                  decoration: InputDecoration(
+                                    hintText: 'Search meetings...',
+                                    hintStyle: const TextStyle(fontSize: 14),
+                                    prefixIcon: const Icon(Icons.search, size: 20),
+                                    suffixIcon: controller.searchQuery.value.isNotEmpty
+                                        ? IconButton(
+                                            icon: const Icon(Icons.clear, size: 18),
+                                            onPressed: controller.clearSearch,
+                                          )
+                                        : null,
+                                    border: InputBorder.none,
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      child: TextField(
-                        controller: controller.searchController,
-                        onChanged: controller.searchMeetings,
-                        decoration: InputDecoration(
-                          hintText: 'Search meetings...',
-                          prefixIcon: const Icon(Icons.search),
-                          suffixIcon: controller.searchQuery.value.isNotEmpty
-                              ? IconButton(
-                                  icon: const Icon(Icons.clear),
-                                  onPressed: controller.clearSearch,
-                                )
-                              : null,
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        ),
-                      ),
+                      ],
                     ),
-                  ],
-                ),
+                  );
+                },
               ),
       ),
     ));
@@ -256,13 +275,13 @@ class MeetingsView extends GetView<MeetingsController> {
       label: Text(label),
       selected: isSelected,
       onSelected: (_) => onTap(),
-      backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
       selectedColor: Theme.of(context).colorScheme.primaryContainer,
       checkmarkColor: Theme.of(context).colorScheme.primary,
       side: BorderSide(
         color: isSelected
             ? Theme.of(context).colorScheme.primary
-            : Theme.of(context).colorScheme.outline.withOpacity(0.2),
+            : Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
       ),
     );
   }
@@ -289,7 +308,7 @@ class MeetingsView extends GetView<MeetingsController> {
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -315,38 +334,86 @@ class MeetingsView extends GetView<MeetingsController> {
                 ],
               ),
               const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildStatCard(
-                      context,
-                      'Total Meetings',
-                      controller.meetings.length.toString(),
-                      Icons.meeting_room,
-                      Theme.of(context).colorScheme.primary,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildStatCard(
-                      context,
-                      'This Week',
-                      controller.getWeeklyMeetingsCount().toString(),
-                      Icons.calendar_today,
-                      Theme.of(context).colorScheme.secondary,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildStatCard(
-                      context,
-                      'Total Hours',
-                      controller.getTotalHours(),
-                      Icons.timer,
-                      Theme.of(context).colorScheme.tertiary,
-                    ),
-                  ),
-                ],
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final isSmallScreen = constraints.maxWidth < 380;
+                  if (isSmallScreen) {
+                    // 小屏幕使用垂直布局
+                    return Column(
+                      children: [
+                        _buildStatCard(
+                          context,
+                          'Total Meetings',
+                          controller.meetings.length.toString(),
+                          Icons.meeting_room,
+                          Theme.of(context).colorScheme.primary,
+                          isCompact: true,
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildStatCard(
+                                context,
+                                'This Week',
+                                controller.getWeeklyMeetingsCount().toString(),
+                                Icons.calendar_today,
+                                Theme.of(context).colorScheme.secondary,
+                                isCompact: true,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: _buildStatCard(
+                                context,
+                                'Total Hours',
+                                controller.getTotalHours(),
+                                Icons.timer,
+                                Theme.of(context).colorScheme.tertiary,
+                                isCompact: true,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    );
+                  } else {
+                    // 大屏幕使用水平布局
+                    return Row(
+                      children: [
+                        Expanded(
+                          child: _buildStatCard(
+                            context,
+                            'Total Meetings',
+                            controller.meetings.length.toString(),
+                            Icons.meeting_room,
+                            Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildStatCard(
+                            context,
+                            'This Week',
+                            controller.getWeeklyMeetingsCount().toString(),
+                            Icons.calendar_today,
+                            Theme.of(context).colorScheme.secondary,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildStatCard(
+                            context,
+                            'Total Hours',
+                            controller.getTotalHours(),
+                            Icons.timer,
+                            Theme.of(context).colorScheme.tertiary,
+                          ),
+                        ),
+                      ],
+                    );
+                  }
+                },
               ),
             ],
           ),
@@ -355,32 +422,46 @@ class MeetingsView extends GetView<MeetingsController> {
     );
   }
 
-  Widget _buildStatCard(BuildContext context, String label, String value, IconData icon, Color color) {
+  Widget _buildStatCard(BuildContext context, String label, String value, IconData icon, Color color, {bool isCompact = false}) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.all(isCompact ? 10 : 12),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.8),
+        color: Theme.of(context).brightness == Brightness.light
+            ? Colors.white.withValues(alpha: 0.9)
+            : Theme.of(context).colorScheme.surface.withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.2),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         children: [
-          Icon(icon, color: color, size: 24),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: color,
+          Icon(icon, color: color, size: isCompact ? 20 : 24),
+          SizedBox(height: isCompact ? 4 : 8),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              value,
+              style: TextStyle(
+                fontSize: isCompact ? 18 : 20,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
             ),
           ),
-          const SizedBox(height: 4),
+          SizedBox(height: isCompact ? 2 : 4),
           Text(
             label,
             style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[600],
+              fontSize: isCompact ? 11 : 12,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
+            textAlign: TextAlign.center,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -468,8 +549,8 @@ class MeetingsView extends GetView<MeetingsController> {
         child: Material(
           elevation: controller.isSelectionMode.value && isSelected ? 8 : 4,
           shadowColor: isToday
-              ? Theme.of(context).colorScheme.primary.withOpacity(0.3)
-              : Colors.black.withOpacity(0.1),
+              ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.3)
+              : Colors.black.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(16),
           child: InkWell(
             onTap: () {
@@ -492,8 +573,8 @@ class MeetingsView extends GetView<MeetingsController> {
                 gradient: controller.isSelectionMode.value && isSelected
                     ? LinearGradient(
                         colors: [
-                          Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                          Theme.of(context).colorScheme.primary.withOpacity(0.05),
+                          Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                          Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
                         ],
                       )
                     : null,
@@ -504,36 +585,39 @@ class MeetingsView extends GetView<MeetingsController> {
                   width: 2,
                 ),
               ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    // Selection indicator or meeting icon
-                    if (controller.isSelectionMode.value)
-                      _buildSelectionIndicator(context, isSelected)
-                    else
-                      _buildMeetingIcon(context, isToday),
-                    const SizedBox(width: 16),
-                    // Meeting details
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final isCompactCard = constraints.maxWidth < 320;
+                  return Padding(
+                    padding: EdgeInsets.all(isCompactCard ? 12 : 16),
+                    child: Row(
+                      children: [
+                        // Selection indicator or meeting icon
+                        if (controller.isSelectionMode.value)
+                          _buildSelectionIndicator(context, isSelected)
+                        else
+                          _buildMeetingIcon(context, isToday, isCompact: isCompactCard),
+                        SizedBox(width: isCompactCard ? 12 : 16),
+                        // Meeting details
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Expanded(
-                                child: Text(
-                                  meeting['title']?.toString() ?? 'Untitled Meeting',
-                                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.w600,
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      meeting['title']?.toString() ?? 'Untitled Meeting',
+                                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
                                   ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              if (isToday)
+                              if (isToday) ...[
+                                const SizedBox(width: 8),
                                 Container(
-                                  margin: const EdgeInsets.only(left: 8),
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                   decoration: BoxDecoration(
                                     color: Theme.of(context).colorScheme.primaryContainer,
@@ -548,38 +632,47 @@ class MeetingsView extends GetView<MeetingsController> {
                                     ),
                                   ),
                                 ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          // Meeting metadata
-                          Wrap(
-                            spacing: 16,
-                            runSpacing: 4,
-                            children: [
-                              _buildMetadataChip(
-                                context,
-                                Icons.access_time,
-                                relativeTime,
+                              ],
+                                ],
                               ),
-                              _buildMetadataChip(
-                                context,
-                                Icons.timer_outlined,
-                                meeting['duration']?.toString() ?? '00:00',
+                              const SizedBox(height: 8),
+                              // Meeting metadata - 响应式布局
+                              LayoutBuilder(
+                                builder: (context, constraints) {
+                                  final isVerySmallScreen = constraints.maxWidth < 280;
+                                  return Wrap(
+                                spacing: isVerySmallScreen ? 8 : 12,
+                                runSpacing: 4,
+                                children: [
+                                  _buildMetadataChip(
+                                    context,
+                                    Icons.access_time,
+                                    relativeTime,
+                                    isCompact: isVerySmallScreen,
+                                  ),
+                                  _buildMetadataChip(
+                                    context,
+                                    Icons.timer_outlined,
+                                    meeting['duration']?.toString() ?? '00:00',
+                                    isCompact: isVerySmallScreen,
+                                  ),
+                                  _buildMetadataChip(
+                                    context,
+                                    Icons.people_outline,
+                                    '${meeting['participants'] ?? '1'}',
+                                    isCompact: isVerySmallScreen,
+                                  ),
+                                ],
+                                  );
+                                },
                               ),
-                              _buildMetadataChip(
-                                context,
-                                Icons.people_outline,
-                                '${meeting['participants'] ?? '1'} people',
-                              ),
-                            ],
-                          ),
                           // Transcription preview (if available)
                           if (meeting['transcription'] != null && meeting['transcription'].toString().isNotEmpty) ...[
                             const SizedBox(height: 8),
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                                color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Row(
@@ -610,11 +703,18 @@ class MeetingsView extends GetView<MeetingsController> {
                     // Action button
                     if (!controller.isSelectionMode.value)
                       IconButton(
-                        icon: const Icon(Icons.arrow_forward_ios, size: 16),
+                        icon: Icon(Icons.arrow_forward_ios, size: isCompactCard ? 14 : 16),
                         onPressed: () => controller.goToMeetingDetail(meeting),
+                        constraints: BoxConstraints(
+                          minWidth: isCompactCard ? 32 : 40,
+                          minHeight: isCompactCard ? 32 : 40,
+                        ),
+                        padding: EdgeInsets.all(isCompactCard ? 4 : 8),
                       ),
                   ],
                 ),
+              );
+            },
               ),
             ),
           ),
@@ -650,10 +750,11 @@ class MeetingsView extends GetView<MeetingsController> {
     );
   }
 
-  Widget _buildMeetingIcon(BuildContext context, bool isToday) {
+  Widget _buildMeetingIcon(BuildContext context, bool isToday, {bool isCompact = false}) {
+    final size = isCompact ? 48.0 : 56.0;
     return Container(
-      width: 56,
-      height: 56,
+      width: size,
+      height: size,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -668,12 +769,12 @@ class MeetingsView extends GetView<MeetingsController> {
                   Colors.grey.shade400,
                 ],
         ),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(isCompact ? 12 : 16),
         boxShadow: [
           BoxShadow(
             color: isToday
-                ? Theme.of(context).colorScheme.primary.withOpacity(0.3)
-                : Colors.black.withOpacity(0.1),
+                ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.3)
+                : Colors.black.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -682,28 +783,35 @@ class MeetingsView extends GetView<MeetingsController> {
       child: Icon(
         Icons.meeting_room_rounded,
         color: isToday ? Colors.white : Colors.grey.shade600,
-        size: 28,
+        size: isCompact ? 24 : 28,
       ),
     );
   }
 
-  Widget _buildMetadataChip(BuildContext context, IconData icon, String label) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          icon,
-          size: 14,
-          color: Theme.of(context).colorScheme.onSurfaceVariant,
-        ),
-        const SizedBox(width: 4),
-        Text(
-          label,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+  Widget _buildMetadataChip(BuildContext context, IconData icon, String label, {bool isCompact = false}) {
+    return Container(
+      constraints: BoxConstraints(maxWidth: isCompact ? 100 : double.infinity),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: isCompact ? 12 : 14,
             color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
-        ),
-      ],
+          SizedBox(width: isCompact ? 2 : 4),
+          Flexible(
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontSize: isCompact ? 11 : null,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
     );
   }
 

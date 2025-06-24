@@ -21,8 +21,14 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(
           seedColor: Colors.blue,
           brightness: Brightness.light,
+          primary: Colors.blue.shade600,
+          secondary: Colors.teal,
+          tertiary: Colors.orange,
+          surface: Colors.grey.shade50,
+          surfaceTint: Colors.blue.shade50,
         ),
         useMaterial3: true,
+        scaffoldBackgroundColor: Colors.grey.shade50,
         appBarTheme: const AppBarTheme(
           centerTitle: true,
           elevation: 0,
