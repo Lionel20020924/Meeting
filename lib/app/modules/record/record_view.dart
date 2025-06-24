@@ -20,9 +20,8 @@ class RecordView extends GetView<RecordController> {
       ),
       body: Column(
         children: [
-          // Main content area - takes 7/8 of screen
+          // Main content area - takes remaining space
           Expanded(
-            flex: 7,
             child: Obx(
               () => AnimatedSwitcher(
                 duration: const Duration(milliseconds: 500),
@@ -33,24 +32,27 @@ class RecordView extends GetView<RecordController> {
             ),
           ),
           
-          // Bottom control area - takes 1/8 of screen
-          Expanded(
-            flex: 1,
-            child: Container(
-              decoration: BoxDecoration(
-                color: Theme.of(context).scaffoldBackgroundColor,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, -2),
-                  ),
-                ],
+          // Bottom control area - using intrinsic height
+          Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.08),
+                  blurRadius: 15,
+                  offset: const Offset(0, -3),
+                ),
+              ],
+              border: Border(
+                top: BorderSide(
+                  color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.15),
+                  width: 1,
+                ),
               ),
-              child: SafeArea(
-                top: false,
-                child: _buildControls(context),
-              ),
+            ),
+            child: SafeArea(
+              top: false,
+              child: _buildControls(context),
             ),
           ),
         ],
@@ -80,22 +82,29 @@ class RecordView extends GetView<RecordController> {
             child: Column(
               children: [
                 Container(
-                  width: 120,
-                  height: 120,
+                  width: 140,
+                  height: 140,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: [
-                        Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                        Theme.of(context).colorScheme.secondary.withValues(alpha: 0.1),
+                        Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
+                        Theme.of(context).colorScheme.secondary.withValues(alpha: 0.15),
                       ],
                     ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                        blurRadius: 20,
+                        spreadRadius: 5,
+                      ),
+                    ],
                   ),
                   child: Icon(
-                    Icons.mic_none,
-                    size: 60,
+                    Icons.mic,
+                    size: 70,
                     color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
@@ -113,17 +122,18 @@ class RecordView extends GetView<RecordController> {
           Text(
             '准备录音',
             style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
+              fontSize: 32,
+              fontWeight: FontWeight.w800,
               color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Text(
             '点击下方按钮开始录制会议',
             style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey[600],
+              fontSize: 18,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w500,
             ),
           ),
           const SizedBox(height: 32),
@@ -173,11 +183,18 @@ class RecordView extends GetView<RecordController> {
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           decoration: BoxDecoration(
-            color: Colors.red.withValues(alpha: 0.05),
+            gradient: LinearGradient(
+              colors: [
+                Colors.red.withValues(alpha: 0.08),
+                Colors.red.withValues(alpha: 0.05),
+              ],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
             border: Border(
               bottom: BorderSide(
-                color: Colors.red.withValues(alpha: 0.2),
-                width: 1,
+                color: Colors.red.withValues(alpha: 0.3),
+                width: 1.5,
               ),
             ),
           ),
@@ -214,10 +231,14 @@ class RecordView extends GetView<RecordController> {
               const Spacer(),
               // Time display
               Obx(() => Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: Colors.red.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(20),
+                  color: Colors.red.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: Colors.red.withValues(alpha: 0.3),
+                    width: 1,
+                  ),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -262,13 +283,21 @@ class RecordView extends GetView<RecordController> {
         Expanded(
           child: Container(
             margin: const EdgeInsets.symmetric(horizontal: 24),
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-              borderRadius: BorderRadius.circular(16),
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.1),
+                color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+                width: 1.5,
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -430,11 +459,13 @@ class RecordView extends GetView<RecordController> {
   }
 
   Widget _buildControls(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.only(left: 20, right: 20, top: 10, bottom: 10),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
           // Action buttons when recording
           Obx(() => controller.isRecording.value
               ? Expanded(
@@ -442,21 +473,47 @@ class RecordView extends GetView<RecordController> {
                     mainAxisAlignment: MainAxisAlignment.start,
                     children: [
                       // Pause/Resume button
-                      IconButton(
-                        onPressed: controller.togglePause,
-                        icon: Obx(() => Icon(
-                          controller.isPaused.value 
-                            ? Icons.play_arrow 
-                            : Icons.pause,
-                          size: 28,
-                        )),
-                        tooltip: controller.isPaused.value ? '继续' : '暂停',
+                      Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: controller.togglePause,
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Obx(() => Icon(
+                              controller.isPaused.value 
+                                ? Icons.play_arrow_rounded 
+                                : Icons.pause_rounded,
+                              size: 24,
+                              color: Theme.of(context).colorScheme.primary,
+                            )),
+                          ),
+                        ),
                       ),
+                      const SizedBox(width: 12),
                       // Add note button
-                      IconButton(
-                        onPressed: controller.addNote,
-                        icon: const Icon(Icons.note_add, size: 28),
-                        tooltip: '添加笔记',
+                      Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: controller.addNote,
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.secondaryContainer.withValues(alpha: 0.3),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              Icons.note_add_rounded,
+                              size: 24,
+                              color: Theme.of(context).colorScheme.secondary,
+                            ),
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -465,65 +522,121 @@ class RecordView extends GetView<RecordController> {
           ),
           
           // Main recording button
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Obx(() => GestureDetector(
-                onTap: controller.toggleRecording,
-                child: Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: controller.isRecording.value
-                        ? Colors.red
-                        : Theme.of(context).colorScheme.primary,
-                    boxShadow: [
-                      BoxShadow(
-                        color: (controller.isRecording.value
-                                ? Colors.red
-                                : Theme.of(context).colorScheme.primary)
-                            .withValues(alpha: 0.3),
-                        blurRadius: 12,
-                        spreadRadius: 1,
-                      ),
-                    ],
-                  ),
-                  child: Center(
-                    child: Icon(
-                      controller.isRecording.value
-                          ? Icons.stop
-                          : Icons.mic,
-                      color: Colors.white,
-                      size: 30,
-                    ),
-                  ),
-                ),
-              )),
-              const SizedBox(height: 4),
-              // Status text
-              Obx(() => Text(
+          Obx(() => GestureDetector(
+            onTap: controller.toggleRecording,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
                 controller.isRecording.value
-                    ? (controller.isPaused.value ? '已暂停' : '录音中')
-                    : '点击开始',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: controller.isRecording.value
-                      ? Colors.red
-                      : Theme.of(context).colorScheme.primary,
+                    ? AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        width: 56,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [Colors.red.shade600, Colors.red.shade800],
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.red.withValues(alpha: 0.4),
+                              blurRadius: 20,
+                              spreadRadius: 2,
+                              offset: const Offset(0, 4),
+                            ),
+                            BoxShadow(
+                              color: Colors.red.withValues(alpha: 0.2),
+                              blurRadius: 40,
+                              spreadRadius: 10,
+                            ),
+                          ],
+                        ),
+                        child: const Center(
+                          child: Icon(
+                            Icons.stop_rounded,
+                            color: Colors.white,
+                            size: 26,
+                          ),
+                        ),
+                      )
+                    : AnimatedBuilder(
+                        animation: controller.pulseAnimation,
+                        builder: (context, child) {
+                          return Transform.scale(
+                            scale: controller.pulseAnimation.value,
+                            child: Container(
+                              width: 60,
+                              height: 60,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                gradient: LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [
+                                    Theme.of(context).colorScheme.primary,
+                                    Theme.of(context).colorScheme.primary.withValues(alpha: 0.8),
+                                  ],
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Theme.of(context).colorScheme.primary.withValues(
+                                      alpha: 0.4 * controller.pulseAnimation.value,
+                                    ),
+                                    blurRadius: 20 * controller.pulseAnimation.value,
+                                    spreadRadius: 2 * controller.pulseAnimation.value,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                  BoxShadow(
+                                    color: Theme.of(context).colorScheme.primary.withValues(
+                                      alpha: 0.2 * controller.pulseAnimation.value,
+                                    ),
+                                    blurRadius: 40,
+                                    spreadRadius: 10,
+                                  ),
+                                ],
+                              ),
+                              child: const Center(
+                                child: Icon(
+                                  Icons.mic,
+                                  color: Colors.white,
+                                  size: 30,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                const SizedBox(height: 4),
+                // Status text
+                AnimatedDefaultTextStyle(
+                  duration: const Duration(milliseconds: 200),
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: controller.isRecording.value
+                        ? Colors.red.shade700
+                        : Theme.of(context).colorScheme.primary,
+                    letterSpacing: 0.5,
+                  ),
+                  child: Text(
+                    controller.isRecording.value
+                        ? (controller.isPaused.value ? '已暂停' : '录音中')
+                        : '点击开始',
+                  ),
                 ),
-              )),
-            ],
-          ),
+              ],
+            ),
+          )),
           
           // Spacer for balance
           Obx(() => controller.isRecording.value
               ? const Expanded(child: SizedBox())
-              : const SizedBox(width: 100),
+              : const SizedBox(width: 80),
           ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -536,27 +649,35 @@ class RecordView extends GetView<RecordController> {
     Color color,
   ) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: color.withValues(alpha: 0.2),
+          color: color.withValues(alpha: 0.3),
+          width: 1.5,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
+              color: color.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(
               icon,
               color: color,
-              size: 20,
+              size: 24,
             ),
           ),
           const SizedBox(width: 12),
@@ -567,18 +688,19 @@ class RecordView extends GetView<RecordController> {
                 Text(
                   title,
                   style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
                     color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 4),
                 Text(
                   description,
                   style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                    height: 1.2,
+                    fontSize: 13,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w400,
+                    height: 1.3,
                   ),
                 ),
               ],

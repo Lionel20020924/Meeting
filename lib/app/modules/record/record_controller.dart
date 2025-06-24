@@ -10,7 +10,7 @@ import '../../routes/app_pages.dart';
 import '../../services/storage_service.dart';
 import '../../services/transcription_service.dart';
 
-class RecordController extends GetxController {
+class RecordController extends GetxController with GetSingleTickerProviderStateMixin {
   final titleController = TextEditingController();
   
   final isRecording = false.obs;
@@ -27,6 +27,10 @@ class RecordController extends GetxController {
   int _seconds = 0;
   bool _animationToggle = false;
   
+  // Animation controller for pulse effect
+  late AnimationController pulseController;
+  late Animation<double> pulseAnimation;
+  
   // Audio recording components
   final AudioRecorder _recorder = AudioRecorder();
   String? _recordingPath;
@@ -40,6 +44,20 @@ class RecordController extends GetxController {
     super.onInit();
     _initializeRecorder();
     _listenToRecordingState();
+    
+    // Initialize pulse animation
+    pulseController = AnimationController(
+      duration: const Duration(seconds: 2),
+      vsync: this,
+    );
+    pulseAnimation = Tween<double>(
+      begin: 1.0,
+      end: 1.08,
+    ).animate(CurvedAnimation(
+      parent: pulseController,
+      curve: Curves.easeInOut,
+    ));
+    pulseController.repeat(reverse: true);
   }
 
   @override
@@ -47,6 +65,7 @@ class RecordController extends GetxController {
     titleController.dispose();
     _timer?.cancel();
     _transcriptionTimer?.cancel();
+    pulseController.dispose();
     _recorder.dispose();
     _recordStateSubscription?.cancel();
     _cleanupChunks();
