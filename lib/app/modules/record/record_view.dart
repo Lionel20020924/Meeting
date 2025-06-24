@@ -62,10 +62,10 @@ class RecordView extends GetView<RecordController> {
 
   Widget _buildWelcomeView(BuildContext context) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       child: Column(
         children: [
-          const SizedBox(height: 20),
+          const SizedBox(height: 8),
           // Welcome animation with waveform
           TweenAnimationBuilder<double>(
             duration: const Duration(milliseconds: 1000),
@@ -82,8 +82,8 @@ class RecordView extends GetView<RecordController> {
             child: Column(
               children: [
                 Container(
-                  width: 140,
-                  height: 140,
+                  width: 100,
+                  height: 100,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: LinearGradient(
@@ -97,46 +97,46 @@ class RecordView extends GetView<RecordController> {
                     boxShadow: [
                       BoxShadow(
                         color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                        blurRadius: 20,
-                        spreadRadius: 5,
+                        blurRadius: 15,
+                        spreadRadius: 2,
                       ),
                     ],
                   ),
                   child: Icon(
                     Icons.mic,
-                    size: 70,
+                    size: 50,
                     color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
                 // Static waveform preview
                 SimpleWaveform(
-                  height: 40,
+                  height: 30,
                   color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
                   barCount: 20,
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
           Text(
             '准备录音',
             style: TextStyle(
-              fontSize: 32,
+              fontSize: 28,
               fontWeight: FontWeight.w800,
               color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           Text(
             '点击下方按钮开始录制会议',
             style: TextStyle(
-              fontSize: 18,
+              fontSize: 16,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
               fontWeight: FontWeight.w500,
             ),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 20),
           
           // Usage tips
           _buildCompactTipCard(
@@ -146,7 +146,7 @@ class RecordView extends GetView<RecordController> {
             '设备距离 30-60 厘米，自然说话',
             Colors.blue,
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           _buildCompactTipCard(
             context,
             Icons.note_add,
@@ -154,7 +154,7 @@ class RecordView extends GetView<RecordController> {
             '点击笔记按钮标记重要时刻',
             Colors.green,
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           _buildCompactTipCard(
             context,
             Icons.translate,
@@ -162,7 +162,7 @@ class RecordView extends GetView<RecordController> {
             '支持中文实时语音转文字',
             Colors.orange,
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           _buildCompactTipCard(
             context,
             Icons.cloud_done,
@@ -649,7 +649,7 @@ class RecordView extends GetView<RecordController> {
     Color color,
   ) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
@@ -668,8 +668,8 @@ class RecordView extends GetView<RecordController> {
       child: Row(
         children: [
           Container(
-            width: 44,
-            height: 44,
+            width: 36,
+            height: 36,
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(10),
@@ -677,7 +677,7 @@ class RecordView extends GetView<RecordController> {
             child: Icon(
               icon,
               color: color,
-              size: 24,
+              size: 20,
             ),
           ),
           const SizedBox(width: 12),
@@ -688,8 +688,8 @@ class RecordView extends GetView<RecordController> {
                 Text(
                   title,
                   style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
                     color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
@@ -697,10 +697,10 @@ class RecordView extends GetView<RecordController> {
                 Text(
                   description,
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: 12,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                     fontWeight: FontWeight.w400,
-                    height: 1.3,
+                    height: 1.2,
                   ),
                 ),
               ],
