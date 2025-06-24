@@ -16,6 +16,7 @@ class MeetingsController extends GetxController {
   
   // Search and filter
   final TextEditingController searchController = TextEditingController();
+  final FocusNode searchFocusNode = FocusNode();
   final currentFilter = 'all'.obs;
   final currentSort = 'date_desc'.obs;
 
@@ -28,6 +29,10 @@ class MeetingsController extends GetxController {
   @override
   void onReady() {
     super.onReady();
+    // Clear search when returning to the page
+    if (searchQuery.value.isNotEmpty) {
+      clearSearch();
+    }
     // Reload meetings when the controller is ready (useful when navigating back)
     loadMeetings();
   }
@@ -35,6 +40,7 @@ class MeetingsController extends GetxController {
   @override
   void onClose() {
     searchController.dispose();
+    searchFocusNode.dispose();
     super.onClose();
   }
 
@@ -417,6 +423,7 @@ class MeetingsController extends GetxController {
   void clearSearch() {
     searchController.clear();
     searchQuery.value = '';
+    searchFocusNode.unfocus(); // Remove keyboard focus
     _applyFiltersAndSort();
   }
   

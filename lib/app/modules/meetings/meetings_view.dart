@@ -9,41 +9,49 @@ class MeetingsView extends GetView<MeetingsController> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        children: [
-          // Background gradient
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                  Theme.of(context).colorScheme.surface,
-                  Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
-                ],
+    return Obx(() => PopScope(
+      canPop: controller.searchQuery.value.isEmpty,
+      onPopInvoked: (didPop) {
+        if (!didPop && controller.searchQuery.value.isNotEmpty) {
+          controller.clearSearch();
+        }
+      },
+      child: Scaffold(
+        body: Stack(
+          children: [
+            // Background gradient
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                    Theme.of(context).colorScheme.surface,
+                    Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
+                  ],
+                ),
               ),
             ),
-          ),
-          // Main content
-          CustomScrollView(
-            slivers: [
-              // Modern App Bar with Search
-              _buildSliverAppBar(context),
-              // Filter chips
-              _buildFilterChips(context),
-              // Statistics Dashboard
-              _buildStatisticsDashboard(context),
-              // Meetings List
-              _buildMeetingsList(context),
-            ],
-          ),
-          // Floating Action Button
-          _buildFloatingActionButton(context),
-        ],
+            // Main content
+            CustomScrollView(
+              slivers: [
+                // Modern App Bar with Search
+                _buildSliverAppBar(context),
+                // Filter chips
+                _buildFilterChips(context),
+                // Statistics Dashboard
+                _buildStatisticsDashboard(context),
+                // Meetings List
+                _buildMeetingsList(context),
+              ],
+            ),
+            // Floating Action Button
+            _buildFloatingActionButton(context),
+          ],
+        ),
       ),
-    );
+    ));
   }
 
   Widget _buildSliverAppBar(BuildContext context) {
@@ -58,7 +66,13 @@ class MeetingsView extends GetView<MeetingsController> {
               icon: const Icon(Icons.close),
               onPressed: controller.toggleSelectionMode,
             )
-          : null,
+          : controller.searchQuery.value.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  onPressed: controller.clearSearch,
+                  tooltip: 'Clear search',
+                )
+              : null,
       title: controller.isSelectionMode.value
           ? Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -92,13 +106,36 @@ class MeetingsView extends GetView<MeetingsController> {
                             mainAxisAlignment: MainAxisAlignment.end,
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                'My Meetings',
-                                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: constraints.maxWidth < 350 ? 24 : null,
-                                ),
-                              ),
+                              Obx(() => Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      controller.searchQuery.value.isEmpty
+                                          ? 'My Meetings'
+                                          : 'Search Results',
+                                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: constraints.maxWidth < 350 ? 24 : null,
+                                      ),
+                                    ),
+                                  ),
+                                  if (controller.searchQuery.value.isNotEmpty)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context).colorScheme.secondaryContainer,
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Text(
+                                        '${controller.filteredMeetings.length} found',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Theme.of(context).colorScheme.onSecondaryContainer,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              )),
                               const SizedBox(height: 12),
                               // Search bar
                               Container(
@@ -110,8 +147,9 @@ class MeetingsView extends GetView<MeetingsController> {
                                     color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
                                   ),
                                 ),
-                                child: TextField(
+                                child: Obx(() => TextField(
                                   controller: controller.searchController,
+                                  focusNode: controller.searchFocusNode,
                                   onChanged: controller.searchMeetings,
                                   style: const TextStyle(fontSize: 14),
                                   decoration: InputDecoration(
@@ -122,12 +160,13 @@ class MeetingsView extends GetView<MeetingsController> {
                                         ? IconButton(
                                             icon: const Icon(Icons.clear, size: 18),
                                             onPressed: controller.clearSearch,
+                                            tooltip: 'Clear search',
                                           )
                                         : null,
                                     border: InputBorder.none,
                                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                                   ),
-                                ),
+                                )),
                               ),
                             ],
                           ),
