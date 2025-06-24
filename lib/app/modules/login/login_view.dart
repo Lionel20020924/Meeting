@@ -9,7 +9,17 @@ class LoginView extends GetView<LoginController> {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final padding = MediaQuery.of(context).padding;
+    final viewInsets = MediaQuery.of(context).viewInsets;
+    
+    // 根据屏幕高度动态计算间距
+    final availableHeight = size.height - padding.top - padding.bottom - viewInsets.bottom;
+    final isSmallScreen = availableHeight < 700; // iPhone SE等小屏设备
+    final isCompact = availableHeight < 800; // iPhone 12 mini等
+    
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -23,28 +33,55 @@ class LoginView extends GetView<LoginController> {
           ),
         ),
         child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Animated Logo Section
-                  _buildLogoSection(context),
-                  const SizedBox(height: 48),
-                  
-                  // Glassmorphism Login Card
-                  _buildLoginCard(context),
-                ],
-              ),
-            ),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                physics: const ClampingScrollPhysics(),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: constraints.maxHeight,
+                  ),
+                  child: IntrinsicHeight(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isSmallScreen ? 16.0 : 24.0,
+                        vertical: isSmallScreen ? 12.0 : 20.0,
+                      ),
+                      child: Column(
+                        children: [
+                          // 动态调整顶部空间
+                          SizedBox(height: isSmallScreen ? 8 : isCompact ? 16 : 24),
+                          
+                          // Animated Logo Section
+                          _buildLogoSection(context, isSmallScreen: isSmallScreen),
+                          
+                          // 动态间距
+                          SizedBox(height: isSmallScreen ? 16 : isCompact ? 24 : 32),
+                          
+                          // Glassmorphism Login Card
+                          Expanded(
+                            child: _buildLoginCard(context, 
+                              isSmallScreen: isSmallScreen,
+                              isCompact: isCompact
+                            ),
+                          ),
+                          
+                          // 底部留白
+                          SizedBox(height: isSmallScreen ? 8 : 16),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
         ),
       ),
     );
   }
 
-  Widget _buildLogoSection(BuildContext context) {
+  Widget _buildLogoSection(BuildContext context, {bool isSmallScreen = false}) {
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0.0, end: 1.0),
       duration: const Duration(milliseconds: 800),
@@ -56,8 +93,8 @@ class LoginView extends GetView<LoginController> {
             children: [
               // Animated Logo Container
               Container(
-                width: 120,
-                height: 120,
+                width: isSmallScreen ? 80 : 100,
+                height: isSmallScreen ? 80 : 100,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: LinearGradient(
@@ -79,18 +116,19 @@ class LoginView extends GetView<LoginController> {
                 child: Center(
                   child: Icon(
                     Icons.meeting_room_rounded,
-                    size: 60,
+                    size: isSmallScreen ? 40 : 50,
                     color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: isSmallScreen ? 12 : 16),
               Text(
                 'Meetingly',
                 style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
                   letterSpacing: 1.2,
+                  fontSize: isSmallScreen ? 28 : null,
                   shadows: [
                     Shadow(
                       color: Colors.black26,
@@ -100,11 +138,12 @@ class LoginView extends GetView<LoginController> {
                   ],
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
               Text(
                 'Record and summarize your meetings',
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                   color: Colors.white.withOpacity(0.9),
+                  fontSize: isSmallScreen ? 14 : 16,
                   shadows: [
                     Shadow(
                       color: Colors.black26,
@@ -113,6 +152,7 @@ class LoginView extends GetView<LoginController> {
                     ),
                   ],
                 ),
+                textAlign: TextAlign.center,
               ),
             ],
           ),
@@ -121,7 +161,7 @@ class LoginView extends GetView<LoginController> {
     );
   }
 
-  Widget _buildLoginCard(BuildContext context) {
+  Widget _buildLoginCard(BuildContext context, {bool isSmallScreen = false, bool isCompact = false}) {
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0.0, end: 1.0),
       duration: const Duration(milliseconds: 900),
@@ -138,7 +178,7 @@ class LoginView extends GetView<LoginController> {
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                 child: Container(
-                  padding: const EdgeInsets.all(32),
+                  padding: EdgeInsets.all(isSmallScreen ? 20 : 28),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(24),
@@ -155,6 +195,7 @@ class LoginView extends GetView<LoginController> {
                     ],
                   ),
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       // Email field
                       Obx(() => _buildTextField(
@@ -166,8 +207,9 @@ class LoginView extends GetView<LoginController> {
                         textInputAction: TextInputAction.next,
                         errorText: controller.emailError.value,
                         isValid: controller.isEmailValid.value,
+                        isSmallScreen: isSmallScreen,
                       )),
-                      const SizedBox(height: 20),
+                      SizedBox(height: isSmallScreen ? 12 : 16),
                       
                       // Password field
                       Obx(() => _buildTextField(
@@ -180,131 +222,154 @@ class LoginView extends GetView<LoginController> {
                         onSubmitted: (_) => controller.login(),
                         errorText: controller.passwordError.value,
                         isValid: controller.isPasswordValid.value,
+                        isSmallScreen: isSmallScreen,
                         suffixIcon: IconButton(
                           icon: Icon(
                             controller.showPassword.value
                                 ? Icons.visibility_off_outlined
                                 : Icons.visibility_outlined,
                             color: Colors.white70,
+                            size: isSmallScreen ? 20 : 24,
                           ),
                           onPressed: controller.togglePasswordVisibility,
                         ),
                       )),
-                      const SizedBox(height: 20),
+                      SizedBox(height: isSmallScreen ? 12 : 16),
                       
-                      // Remember me & Forgot password
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              Obx(() => Theme(
-                                data: Theme.of(context).copyWith(
-                                  unselectedWidgetColor: Colors.white70,
+                      // Remember me & Forgot password - 只在非小屏显示
+                      if (!isSmallScreen) ...[
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Obx(() => Theme(
+                                  data: Theme.of(context).copyWith(
+                                    unselectedWidgetColor: Colors.white70,
+                                  ),
+                                  child: SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: Checkbox(
+                                      value: controller.rememberMe.value,
+                                      onChanged: (value) =>
+                                          controller.rememberMe.value = value ?? false,
+                                      checkColor: Theme.of(context).colorScheme.primary,
+                                      fillColor: WidgetStateProperty.resolveWith((states) {
+                                        if (states.contains(WidgetState.selected)) {
+                                          return Colors.white;
+                                        }
+                                        return Colors.transparent;
+                                      }),
+                                    ),
+                                  ),
+                                )),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Remember me',
+                                  style: TextStyle(
+                                    color: Colors.white.withOpacity(0.9),
+                                    fontSize: 14,
+                                  ),
                                 ),
-                                child: Checkbox(
-                                  value: controller.rememberMe.value,
-                                  onChanged: (value) =>
-                                      controller.rememberMe.value = value ?? false,
-                                  checkColor: Theme.of(context).colorScheme.primary,
-                                  fillColor: WidgetStateProperty.resolveWith((states) {
-                                    if (states.contains(WidgetState.selected)) {
-                                      return Colors.white;
-                                    }
-                                    return Colors.transparent;
-                                  }),
-                                ),
-                              )),
-                              Text(
-                                'Remember me',
-                                style: TextStyle(color: Colors.white.withOpacity(0.9)),
+                              ],
+                            ),
+                            TextButton(
+                              onPressed: controller.forgotPassword,
+                              style: TextButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(horizontal: 8),
                               ),
-                            ],
-                          ),
-                          TextButton(
-                            onPressed: controller.forgotPassword,
-                            child: Text(
-                              'Forgot password?',
-                              style: TextStyle(
-                                color: Colors.white.withOpacity(0.9),
-                                fontWeight: FontWeight.w600,
+                              child: Text(
+                                'Forgot password?',
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.9),
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 32),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                      ] else
+                        const SizedBox(height: 8),
                       
                       // Login button
-                      _buildLoginButton(context),
-                      const SizedBox(height: 24),
+                      _buildLoginButton(context, isSmallScreen: isSmallScreen),
+                      SizedBox(height: isSmallScreen ? 12 : 16),
                       
-                      // Or divider
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Divider(
-                              color: Colors.white.withOpacity(0.3),
-                              thickness: 1,
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: Text(
-                              'OR',
-                              style: TextStyle(
-                                color: Colors.white.withOpacity(0.7),
-                                fontWeight: FontWeight.w600,
+                      // Quick login button - 移到登录按钮正下方，更显眼
+                      _buildQuickLoginButton(context, isSmallScreen: isSmallScreen),
+                      SizedBox(height: isSmallScreen ? 12 : 20),
+                      
+                      // Or divider - 简化样式
+                      if (!isSmallScreen) ...[
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Divider(
+                                color: Colors.white.withOpacity(0.3),
+                                thickness: 1,
                               ),
                             ),
-                          ),
-                          Expanded(
-                            child: Divider(
-                              color: Colors.white.withOpacity(0.3),
-                              thickness: 1,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                      
-                      // Social login buttons
-                      _buildSocialLoginButtons(context),
-                      const SizedBox(height: 32),
-                      
-                      // Sign up
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            "Don't have an account?",
-                            style: TextStyle(color: Colors.white.withOpacity(0.8)),
-                          ),
-                          TextButton(
-                            onPressed: controller.goToSignUp,
-                            child: const Text(
-                              'Sign up',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              child: Text(
+                                'OR',
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.7),
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 12,
+                                ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      
-                      // Quick login for debugging
-                      TextButton(
-                        onPressed: controller.quickLogin,
-                        child: Text(
-                          'Quick Login (Debug)',
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.5),
-                            fontSize: 12,
-                          ),
+                            Expanded(
+                              child: Divider(
+                                color: Colors.white.withOpacity(0.3),
+                                thickness: 1,
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
+                        const SizedBox(height: 16),
+                      ],
+                      
+                      // Social login buttons - 优化布局
+                      if (!isSmallScreen)
+                        _buildSocialLoginButtons(context, isCompact: isCompact)
+                      else
+                        _buildCompactSocialLogin(context),
+                      
+                      // Sign up - 简化并合并到底部
+                      if (!isSmallScreen) ...[
+                        const SizedBox(height: 20),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              "Don't have an account?",
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.8),
+                                fontSize: 14,
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: controller.goToSignUp,
+                              style: TextButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(horizontal: 4),
+                              ),
+                              child: const Text(
+                                'Sign up',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -328,6 +393,7 @@ class LoginView extends GetView<LoginController> {
     Widget? suffixIcon,
     String? errorText,
     bool? isValid,
+    bool isSmallScreen = false,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -356,14 +422,31 @@ class LoginView extends GetView<LoginController> {
             decoration: InputDecoration(
               labelText: label,
               hintText: hint,
-              labelStyle: TextStyle(color: Colors.white.withOpacity(0.8)),
-              hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
-              prefixIcon: Icon(icon, color: Colors.white70),
+              labelStyle: TextStyle(
+                color: Colors.white.withOpacity(0.8),
+                fontSize: isSmallScreen ? 14 : 16,
+              ),
+              hintStyle: TextStyle(
+                color: Colors.white.withOpacity(0.5),
+                fontSize: isSmallScreen ? 14 : 16,
+              ),
+              prefixIcon: Icon(
+                icon, 
+                color: Colors.white70,
+                size: isSmallScreen ? 20 : 24,
+              ),
               suffixIcon: suffixIcon ?? (isValid == true
-                  ? Icon(Icons.check_circle, color: Colors.green.withOpacity(0.7))
+                  ? Icon(
+                      Icons.check_circle, 
+                      color: Colors.green.withOpacity(0.7),
+                      size: isSmallScreen ? 20 : 24,
+                    )
                   : null),
               border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: isSmallScreen ? 16 : 20, 
+                vertical: isSmallScreen ? 12 : 16,
+              ),
             ),
           ),
         ),
@@ -387,11 +470,11 @@ class LoginView extends GetView<LoginController> {
     );
   }
 
-  Widget _buildLoginButton(BuildContext context) {
+  Widget _buildLoginButton(BuildContext context, {bool isSmallScreen = false}) {
     return Obx(() => AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       width: double.infinity,
-      height: 56,
+      height: isSmallScreen ? 48 : 52,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         gradient: LinearGradient(
@@ -439,22 +522,24 @@ class LoginView extends GetView<LoginController> {
     ));
   }
 
-  Widget _buildSocialLoginButtons(BuildContext context) {
+  Widget _buildSocialLoginButtons(BuildContext context, {bool isCompact = false}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         _buildSocialButton(
           onPressed: () => controller.socialLogin('google'),
           icon: Icons.g_mobiledata_rounded,
-          label: 'Google',
+          label: isCompact ? '' : 'Google',
           color: Colors.red,
+          isCompact: isCompact,
         ),
-        const SizedBox(width: 20),
+        const SizedBox(width: 16),
         _buildSocialButton(
           onPressed: () => controller.socialLogin('apple'),
           icon: Icons.apple,
-          label: 'Apple',
+          label: isCompact ? '' : 'Apple',
           color: Colors.white,
+          isCompact: isCompact,
         ),
       ],
     );
@@ -465,12 +550,16 @@ class LoginView extends GetView<LoginController> {
     required IconData icon,
     required String label,
     required Color color,
+    bool isCompact = false,
   }) {
     return InkWell(
       onTap: onPressed,
       borderRadius: BorderRadius.circular(16),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        padding: EdgeInsets.symmetric(
+          horizontal: isCompact ? 16 : 20,
+          vertical: isCompact ? 10 : 12,
+        ),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           color: Colors.white.withOpacity(0.1),
@@ -482,17 +571,98 @@ class LoginView extends GetView<LoginController> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: color, size: 24),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.9),
-                fontWeight: FontWeight.w600,
+            Icon(icon, color: color, size: isCompact ? 20 : 24),
+            if (label.isNotEmpty) ...[
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.9),
+                  fontWeight: FontWeight.w600,
+                  fontSize: isCompact ? 14 : 16,
+                ),
               ),
-            ),
+            ],
           ],
         ),
+      ),
+    );
+  }
+  
+  // 快速登录按钮 - 更显眼的设计
+  Widget _buildQuickLoginButton(BuildContext context, {bool isSmallScreen = false}) {
+    return OutlinedButton.icon(
+      onPressed: controller.quickLogin,
+      icon: Icon(
+        Icons.flash_on,
+        color: Colors.amber,
+        size: isSmallScreen ? 18 : 20,
+      ),
+      label: Text(
+        'Quick Login (Dev)',
+        style: TextStyle(
+          color: Colors.white.withOpacity(0.9),
+          fontWeight: FontWeight.w600,
+          fontSize: isSmallScreen ? 14 : 16,
+        ),
+      ),
+      style: OutlinedButton.styleFrom(
+        padding: EdgeInsets.symmetric(
+          horizontal: isSmallScreen ? 20 : 24,
+          vertical: isSmallScreen ? 10 : 12,
+        ),
+        side: BorderSide(
+          color: Colors.amber.withOpacity(0.5),
+          width: 1.5,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+    );
+  }
+  
+  // 紧凑的社交登录按钮组
+  Widget _buildCompactSocialLogin(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            'Or login with',
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.7),
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Row(
+            children: [
+              IconButton(
+                onPressed: () => controller.socialLogin('google'),
+                icon: Icon(
+                  Icons.g_mobiledata_rounded,
+                  color: Colors.red,
+                  size: 24,
+                ),
+                padding: const EdgeInsets.all(8),
+                constraints: const BoxConstraints(),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                onPressed: () => controller.socialLogin('apple'),
+                icon: Icon(
+                  Icons.apple,
+                  color: Colors.white,
+                  size: 24,
+                ),
+                padding: const EdgeInsets.all(8),
+                constraints: const BoxConstraints(),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
