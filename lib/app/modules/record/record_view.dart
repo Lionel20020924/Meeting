@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../widgets/smooth_audio_waveform.dart';
+import '../../widgets/professional_waveform.dart';
 import 'record_controller.dart';
 
 class RecordView extends GetView<RecordController> {
@@ -281,15 +281,40 @@ class RecordView extends GetView<RecordController> {
         
         // Audio Waveform Visualization
         Container(
-          height: 120,
-          margin: const EdgeInsets.symmetric(vertical: 24, horizontal: 24),
-          child: Center(
-            child: Obx(() => FlowingWaveform(
-              waveformData: controller.waveformData,
-              height: 100,
-              color: controller.isPaused.value ? Colors.grey : Colors.red,
-              isActive: controller.isRecording.value && !controller.isPaused.value,
-            )),
+          margin: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: controller.isPaused.value 
+                  ? Colors.grey.withValues(alpha: 0.2)
+                  : Colors.red.withValues(alpha: 0.2),
+              width: 1,
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Spectrum style waveform
+              Obx(() => SpectrumWaveform(
+                waveformData: controller.waveformData,
+                height: 80,
+                isActive: controller.isRecording.value && !controller.isPaused.value,
+              )),
+              const SizedBox(height: 8),
+              // Professional waveform
+              Obx(() => ProfessionalWaveform(
+                waveformData: controller.waveformData,
+                height: 60,
+                primaryColor: controller.isPaused.value ? Colors.grey : Colors.red,
+                secondaryColor: controller.isPaused.value 
+                    ? Colors.grey.shade400 
+                    : Colors.red.shade300,
+                isActive: controller.isRecording.value && !controller.isPaused.value,
+                showMirror: true,
+              )),
+            ],
           ),
         ),
         

@@ -37,7 +37,7 @@ class RecordController extends GetxController with GetSingleTickerProviderStateM
   final waveformData = <double>[].obs; // Historical waveform data points
   StreamSubscription<Amplitude>? _amplitudeSubscription;
   Timer? _waveformTimer;
-  static const int maxWaveformPoints = 60; // Number of points to display
+  static const int maxWaveformPoints = 40; // Number of points to display for better visual
   
   // Smoothing variables
   final List<double> _recentLevels = [];
@@ -73,6 +73,11 @@ class RecordController extends GetxController with GetSingleTickerProviderStateM
     
     // Initialize waveform data with zeros
     waveformData.value = List.filled(maxWaveformPoints, 0.0);
+    
+    // Start with some random low values for visual appeal
+    for (int i = 0; i < maxWaveformPoints; i++) {
+      waveformData[i] = 0.05 + (i % 3) * 0.02;
+    }
   }
 
   @override
