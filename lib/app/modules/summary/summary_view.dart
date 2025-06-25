@@ -31,7 +31,9 @@ class SummaryView extends GetView<SummaryController> {
         ],
       ),
       body: Obx(() {
-        if (controller.isLoading.value) {
+        // Show full loading screen only when loading transcript or initial load
+        if (controller.isLoading.value || 
+            (controller.isTranscribing.value && controller.transcript.value.isEmpty)) {
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,

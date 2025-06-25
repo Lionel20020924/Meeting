@@ -15,7 +15,7 @@ import '../../services/storage_service.dart';
 class SummaryController extends GetxController {
   late Map<String, dynamic> meetingData;
   
-  final isLoading = true.obs;
+  final isLoading = false.obs;  // Start with false, only show loading when needed
   final isTranscribing = false.obs;
   final isGeneratingSummary = false.obs;
   final transcript = ''.obs;
@@ -49,9 +49,13 @@ class SummaryController extends GetxController {
     final autoGenerate = meetingData['autoGenerateSummary'] ?? false;
     
     _processTranscription().then((_) {
-      // If autoGenerate is true and we have transcription, generate summary automatically
+      // If autoGenerate is true and we have transcription but no summary, generate it
       if (autoGenerate && transcript.value.isNotEmpty && summary.value.isEmpty) {
-        _generateSummary();
+        // Show loading for summary generation
+        isLoading.value = true;
+        _generateSummary().then((_) {
+          isLoading.value = false;
+        });
       }
     });
     
@@ -120,16 +124,14 @@ class SummaryController extends GetxController {
   
   Future<void> _processTranscription() async {
     try {
-      isLoading.value = true;
-      
-      // Step 1: Check if we already have transcription
+      // Step 1: Check if we already have transcription AND summary
       if (meetingData['transcription'] != null && meetingData['transcription'].toString().isNotEmpty) {
         // Use existing transcription
         transcript.value = meetingData['transcription'].toString();
         
         // Check if we already have summary data
         if (meetingData['summary'] != null && meetingData['summary'].toString().isNotEmpty) {
-          // Load existing summary data
+          // Load existing summary data WITHOUT showing loading
           summary.value = meetingData['summary'].toString();
           if (meetingData['keyPoints'] != null) {
             keyPoints.value = List<String>.from(meetingData['keyPoints'] ?? []);
@@ -140,8 +142,14 @@ class SummaryController extends GetxController {
           if (Get.isLogEnable) {
             Get.log('Using existing transcription and summary data');
           }
+          // Don't show loading since we have all the data
+          isLoading.value = false;
+          return;
         }
       }
+      
+      // Only show loading if we need to process something
+      isLoading.value = true;
       
       // Check if we have audio path
       final audioPath = meetingData['audioPath']?.toString();
@@ -300,12 +308,17 @@ ${transcript.value}
         _parseGPTResponse(response);
       }
       
+      // Save immediately after generating summary
+      await _updateSavedMeeting();
+      
     } catch (e) {
       if (Get.isLogEnable) {
         Get.log('GPT summary generation failed: $e');
       }
       // If GPT fails, generate basic summary
       _generateBasicSummary();
+      // Save the basic summary too
+      await _updateSavedMeeting();
     } finally {
       isGeneratingSummary.value = false;
     }
@@ -424,9 +437,10 @@ ${transcript.value}
   
   void regenerateSummary() {
     if (transcript.value.isNotEmpty) {
-      isLoading.value = true;
+      // Only show loading for regeneration
+      isGeneratingSummary.value = true;
       _generateSummary().then((_) {
-        isLoading.value = false;
+        isGeneratingSummary.value = false;
       });
     }
   }

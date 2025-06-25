@@ -145,7 +145,12 @@ class MeetingsController extends GetxController {
   }
 
   void goToMeetingDetail(Map<String, dynamic> meeting) {
-    Get.toNamed(Routes.SUMMARY, arguments: meeting);
+    // Pass the meeting data without autoGenerateSummary flag
+    // This ensures we don't regenerate summary if it already exists
+    Get.toNamed(Routes.SUMMARY, arguments: {
+      ...meeting,
+      'autoGenerateSummary': false,  // Don't auto-generate when viewing from list
+    });
   }
 
   void addNewMeeting(Map<String, dynamic> meeting) {

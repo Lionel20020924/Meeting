@@ -705,37 +705,74 @@ class MeetingsView extends GetView<MeetingsController> {
                                   );
                                 },
                               ),
-                          // Transcription preview (if available)
-                          if (meeting['transcription'] != null && meeting['transcription'].toString().isNotEmpty) ...[
-                            const SizedBox(height: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.text_snippet_outlined,
-                                    size: 14,
-                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          // Summary and transcription status
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              // Summary status
+                              if (meeting['summary'] != null && meeting['summary'].toString().isNotEmpty)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context).colorScheme.tertiaryContainer,
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
-                                  const SizedBox(width: 4),
-                                  Expanded(
-                                    child: Text(
-                                      meeting['transcription'].toString(),
-                                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.summarize,
+                                        size: 14,
+                                        color: Theme.of(context).colorScheme.onTertiaryContainer,
                                       ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        'Summary',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: Theme.of(context).colorScheme.onTertiaryContainer,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              // Transcription status
+                              if (meeting['transcription'] != null && meeting['transcription'].toString().isNotEmpty) ...[
+                                if (meeting['summary'] != null && meeting['summary'].toString().isNotEmpty)
+                                  const SizedBox(width: 8),
+                                Expanded(
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.text_snippet_outlined,
+                                          size: 14,
+                                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Expanded(
+                                          child: Text(
+                                            meeting['transcription'].toString(),
+                                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                ],
-                              ),
-                            ),
-                          ],
+                                ),
+                              ],
+                            ],
+                          ),
                         ],
                       ),
                     ),
