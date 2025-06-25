@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -31,13 +32,24 @@ class RecordController extends GetxController with GetSingleTickerProviderStateM
   late AnimationController pulseController;
   late Animation<double> pulseAnimation;
   
+  // Audio level monitoring
+  final audioLevel = 0.0.obs; // Current audio level (0.0 to 1.0)
+  final waveformData = <double>[].obs; // Historical waveform data points
+  StreamSubscription<Amplitude>? _amplitudeSubscription;
+  Timer? _waveformTimer;
+  static const int maxWaveformPoints = 60; // Number of points to display
+  
+  // Smoothing variables
+  final List<double> _recentLevels = [];
+  static const int _smoothingWindow = 3;
+  
   // Audio recording components
   final AudioRecorder _recorder = AudioRecorder();
   String? _recordingPath;
   StreamSubscription<RecordState>? _recordStateSubscription;
   
   // Transcription chunks for real-time processing
-  List<String> _audioChunks = [];
+  final List<String> _audioChunks = [];
   
   @override
   void onInit() {
@@ -58,6 +70,9 @@ class RecordController extends GetxController with GetSingleTickerProviderStateM
       curve: Curves.easeInOut,
     ));
     pulseController.repeat(reverse: true);
+    
+    // Initialize waveform data with zeros
+    waveformData.value = List.filled(maxWaveformPoints, 0.0);
   }
 
   @override
@@ -65,9 +80,11 @@ class RecordController extends GetxController with GetSingleTickerProviderStateM
     titleController.dispose();
     _timer?.cancel();
     _transcriptionTimer?.cancel();
+    _waveformTimer?.cancel();
     pulseController.dispose();
     _recorder.dispose();
     _recordStateSubscription?.cancel();
+    _amplitudeSubscription?.cancel();
     _cleanupChunks();
     super.onClose();
   }
@@ -158,6 +175,7 @@ class RecordController extends GetxController with GetSingleTickerProviderStateM
       isRecording.value = true;
       _startTimer();
       _startRealtimeTranscription();
+      _startAudioLevelMonitoring();
       
     } catch (e) {
       Get.snackbar(
@@ -289,6 +307,7 @@ class RecordController extends GetxController with GetSingleTickerProviderStateM
     try {
       // Stop real-time transcription
       _stopRealtimeTranscription();
+      _stopAudioLevelMonitoring();
       
       // Stop the recorder and get the final path
       final finalPath = await _recorder.stop();
@@ -331,6 +350,7 @@ class RecordController extends GetxController with GetSingleTickerProviderStateM
     recordingStartTime.value = null;
     elapsedTime.value = '';
     _cleanupChunks();
+    _recentLevels.clear();
   }
 
   void exitRecording() {
@@ -582,5 +602,101 @@ class RecordController extends GetxController with GetSingleTickerProviderStateM
     
     // Generate title based on time and duration
     titleController.text = '$dateStr $timeStr 会议 ($duration)';
+  }
+  
+  // Audio level monitoring methods
+  void _startAudioLevelMonitoring() {
+    // Listen to amplitude stream from recorder with higher frequency for smoother animation
+    _amplitudeSubscription = _recorder.onAmplitudeChanged(const Duration(milliseconds: 50)).listen((amplitude) {
+      // Calculate normalized audio level (0.0 to 1.0)
+      // Amplitude.current ranges from -160 to 0 dB
+      final normalizedLevel = _normalizeAudioLevel(amplitude.current);
+      audioLevel.value = normalizedLevel;
+      
+      // Update waveform data
+      _updateWaveformData(normalizedLevel);
+    });
+    
+    // Also update waveform periodically to ensure smooth animation
+    _waveformTimer = Timer.periodic(const Duration(milliseconds: 50), (timer) {
+      if (!isRecording.value || isPaused.value) {
+        // Add zero values when paused to show silence with smooth decay
+        final lastValue = waveformData.isNotEmpty ? waveformData.last : 0.0;
+        _updateWaveformData(lastValue * 0.85); // Smooth decay
+      }
+    });
+  }
+  
+  void _stopAudioLevelMonitoring() {
+    _amplitudeSubscription?.cancel();
+    _amplitudeSubscription = null;
+    _waveformTimer?.cancel();
+    _waveformTimer = null;
+    audioLevel.value = 0.0;
+    
+    // Clear waveform data
+    waveformData.value = List.filled(maxWaveformPoints, 0.0);
+  }
+  
+  double _normalizeAudioLevel(double dbLevel) {
+    // Convert dB level to normalized value (0.0 to 1.0)
+    // -160 dB = silence (0.0), 0 dB = maximum (1.0)
+    // Use -45 dB as practical minimum for better sensitivity
+    const double minDb = -45.0;
+    const double maxDb = -5.0; // Use -5 dB as practical maximum for better range
+    
+    if (dbLevel <= minDb) return 0.0;
+    if (dbLevel >= maxDb) return 1.0;
+    
+    // Linear interpolation between min and max
+    final normalized = (dbLevel - minDb) / (maxDb - minDb);
+    
+    // Apply smoothing curve for better visualization with less aggressive curve
+    return math.pow(normalized, 1.2).toDouble();
+  }
+  
+  void _updateWaveformData(double level) {
+    // Add to recent levels for smoothing
+    _recentLevels.add(level);
+    if (_recentLevels.length > _smoothingWindow) {
+      _recentLevels.removeAt(0);
+    }
+    
+    // Calculate smoothed level
+    double smoothedLevel = level;
+    if (_recentLevels.length >= 2) {
+      // Apply exponential moving average
+      double sum = 0;
+      double weight = 1;
+      double totalWeight = 0;
+      
+      for (int i = _recentLevels.length - 1; i >= 0; i--) {
+        sum += _recentLevels[i] * weight;
+        totalWeight += weight;
+        weight *= 0.7; // Decay factor
+      }
+      
+      smoothedLevel = sum / totalWeight;
+    }
+    
+    final List<double> newData = List.from(waveformData);
+    
+    // Shift existing data to the left
+    for (int i = 0; i < newData.length - 1; i++) {
+      newData[i] = newData[i + 1];
+    }
+    
+    // Add smoothed level at the end
+    newData[newData.length - 1] = smoothedLevel;
+    
+    // Apply additional smoothing to the entire waveform
+    for (int i = 1; i < newData.length - 1; i++) {
+      final prev = newData[i - 1];
+      final curr = newData[i];
+      final next = newData[i + 1];
+      newData[i] = curr * 0.5 + prev * 0.25 + next * 0.25;
+    }
+    
+    waveformData.value = newData;
   }
 }

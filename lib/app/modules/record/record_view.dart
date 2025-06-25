@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../widgets/audio_waveform.dart';
+import '../../widgets/smooth_audio_waveform.dart';
 import 'record_controller.dart';
 
 class RecordView extends GetView<RecordController> {
@@ -110,10 +110,24 @@ class RecordView extends GetView<RecordController> {
                 ),
                 const SizedBox(height: 16),
                 // Static waveform preview
-                SimpleWaveform(
+                Container(
                   height: 30,
-                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
-                  barCount: 20,
+                  width: 200,
+                  alignment: Alignment.center,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: List.generate(15, (index) {
+                      final height = 8.0 + (index % 3) * 4.0;
+                      return Container(
+                        width: 3,
+                        height: height,
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(1.5),
+                        ),
+                      );
+                    }),
+                  ),
                 ),
               ],
             ),
@@ -268,12 +282,12 @@ class RecordView extends GetView<RecordController> {
         // Audio Waveform Visualization
         Container(
           height: 120,
-          margin: const EdgeInsets.symmetric(vertical: 24),
+          margin: const EdgeInsets.symmetric(vertical: 24, horizontal: 24),
           child: Center(
-            child: Obx(() => AudioWaveform(
+            child: Obx(() => FlowingWaveform(
+              waveformData: controller.waveformData,
               height: 100,
               color: controller.isPaused.value ? Colors.grey : Colors.red,
-              barCount: 60,
               isActive: controller.isRecording.value && !controller.isPaused.value,
             )),
           ),
