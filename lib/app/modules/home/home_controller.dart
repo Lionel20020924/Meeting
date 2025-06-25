@@ -10,8 +10,9 @@ class HomeController extends GetxController {
       // Navigate to Record page when "New Meeting" is tapped
       Get.toNamed(Routes.RECORD);
     } else {
-      // Update index for other pages (adjust for the missing middle page)
-      currentIndex.value = index > 1 ? index - 1 : index;
+      // For other pages, use the index directly
+      // Index 0: Meetings, Index 2: Profile
+      currentIndex.value = index;
     }
   }
 }

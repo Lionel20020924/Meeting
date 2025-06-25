@@ -34,11 +34,20 @@ class ProfileController extends GetxController {
   String get userName => profileData['name'] ?? '';
   String get userEmail => profileData['email'] ?? '';
   String get userInitials => ProfileService.getUserInitials(userName);
-  Color get avatarColor => Color(ProfileService.getAvatarColor(userName));
+  Color get avatarColor {
+    try {
+      return Color(ProfileService.getAvatarColor(userName));
+    } catch (e) {
+      return Colors.blue; // Default color if parsing fails
+    }
+  }
   
   @override
   void onInit() {
     super.onInit();
+    if (Get.isLogEnable) {
+      Get.log('ProfileController onInit called');
+    }
     loadProfile();
     loadMeetingStats();
   }
@@ -59,6 +68,17 @@ class ProfileController extends GetxController {
     try {
       isLoading.value = true;
       final profile = await ProfileService.loadProfile();
+      
+      // Ensure meetingPreferences exists
+      if (profile['meetingPreferences'] == null) {
+        profile['meetingPreferences'] = {
+          'defaultDuration': 30,
+          'autoTranscribe': true,
+          'autoSummarize': true,
+          'language': 'zh',
+        };
+      }
+      
       profileData.value = profile;
       
       // Update controllers with loaded data
@@ -70,6 +90,11 @@ class ProfileController extends GetxController {
       departmentController.text = profile['department'] ?? '';
       bioController.text = profile['bio'] ?? '';
     } catch (e) {
+      if (Get.isLogEnable) {
+        Get.log('Error loading profile: $e');
+      }
+      // Set default profile data on error
+      profileData.value = Map<String, dynamic>.from(ProfileService.defaultProfile);
       Get.snackbar(
         'Error',
         'Failed to load profile',
@@ -94,31 +119,56 @@ class ProfileController extends GetxController {
       final now = DateTime.now();
       final weekStart = now.subtract(Duration(days: now.weekday - 1));
       weeklyMeetings.value = meetings.where((meeting) {
-        final meetingDate = DateTime.parse(meeting['date'] ?? '');
-        return meetingDate.isAfter(weekStart);
+        try {
+          final dateStr = meeting['date']?.toString();
+          if (dateStr == null || dateStr.isEmpty) return false;
+          final meetingDate = DateTime.parse(dateStr);
+          return meetingDate.isAfter(weekStart);
+        } catch (e) {
+          return false;
+        }
       }).length;
       
       // Calculate monthly meetings
       final monthStart = DateTime(now.year, now.month, 1);
       monthlyMeetings.value = meetings.where((meeting) {
-        final meetingDate = DateTime.parse(meeting['date'] ?? '');
-        return meetingDate.isAfter(monthStart);
+        try {
+          final dateStr = meeting['date']?.toString();
+          if (dateStr == null || dateStr.isEmpty) return false;
+          final meetingDate = DateTime.parse(dateStr);
+          return meetingDate.isAfter(monthStart);
+        } catch (e) {
+          return false;
+        }
       }).length;
       
       // Calculate average duration
       if (meetings.isNotEmpty) {
         int totalSeconds = 0;
+        int validMeetings = 0;
         for (final meeting in meetings) {
-          final duration = meeting['duration'] ?? '00:00';
-          final parts = duration.split(':');
-          if (parts.length >= 2) {
-            totalSeconds += int.parse(parts[0]) * 60 + int.parse(parts[1]);
+          try {
+            final duration = meeting['duration']?.toString() ?? '00:00';
+            final parts = duration.split(':');
+            if (parts.length >= 2) {
+              totalSeconds += int.parse(parts[0]) * 60 + int.parse(parts[1]);
+              validMeetings++;
+            }
+          } catch (e) {
+            // Skip invalid duration
           }
         }
-        averageDuration.value = totalSeconds ~/ meetings.length;
+        averageDuration.value = validMeetings > 0 ? totalSeconds ~/ validMeetings : 0;
       }
     } catch (e) {
-      // Ignore errors for stats
+      if (Get.isLogEnable) {
+        Get.log('Error loading meeting stats: $e');
+      }
+      // Set default values on error
+      totalMeetings.value = 0;
+      weeklyMeetings.value = 0;
+      monthlyMeetings.value = 0;
+      averageDuration.value = 0;
     }
   }
   
@@ -182,6 +232,11 @@ class ProfileController extends GetxController {
   
   void updatePreference(String key, dynamic value) async {
     try {
+      // Ensure meetingPreferences exists
+      if (profileData['meetingPreferences'] == null) {
+        profileData['meetingPreferences'] = {};
+      }
+      
       await ProfileService.updateProfileField('meetingPreferences.$key', value);
       profileData['meetingPreferences'][key] = value;
       profileData.refresh();
@@ -195,6 +250,9 @@ class ProfileController extends GetxController {
         duration: const Duration(seconds: 1),
       );
     } catch (e) {
+      if (Get.isLogEnable) {
+        Get.log('Error updating preference: $e');
+      }
       Get.snackbar(
         'Error',
         'Failed to update preference',

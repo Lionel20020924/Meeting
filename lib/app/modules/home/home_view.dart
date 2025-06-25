@@ -15,9 +15,9 @@ class HomeView extends GetView<HomeController> {
         () => IndexedStack(
           index: controller.currentIndex.value,
           children: const [
-            MeetingsView(),
-            SizedBox(), // Placeholder for record navigation
-            ProfileView(),
+            MeetingsView(),      // index 0
+            SizedBox(),          // index 1 (placeholder, never shown)
+            ProfileView(),       // index 2
           ],
         ),
       ),
