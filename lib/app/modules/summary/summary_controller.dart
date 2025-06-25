@@ -34,6 +34,9 @@ class SummaryController extends GetxController {
   final currentPosition = Duration.zero.obs;
   final totalDuration = Duration.zero.obs;
   
+  // UI state
+  final isTranscriptExpanded = false.obs;  // Start collapsed to show summary first
+  
   // Stream subscriptions
   StreamSubscription<PlayerState>? _playerStateSubscription;
   StreamSubscription<Duration>? _positionSubscription;
@@ -606,5 +609,10 @@ ${transcript.value}
       snackPosition: SnackPosition.BOTTOM,
       duration: const Duration(seconds: 2),
     );
+  }
+  
+  // UI methods
+  void toggleTranscriptExpansion() {
+    isTranscriptExpanded.value = !isTranscriptExpanded.value;
   }
 }

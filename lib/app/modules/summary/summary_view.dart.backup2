@@ -148,7 +148,7 @@ class SummaryView extends GetView<SummaryController> {
         return Column(
           children: [
             // Top section: Collapsible Transcript
-            AnimatedContainer(
+            Obx(() => AnimatedContainer(
               duration: const Duration(milliseconds: 300),
               margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
               child: Card(
@@ -183,13 +183,13 @@ class SummaryView extends GetView<SummaryController> {
                               borderRadius: BorderRadius.circular(20),
                               child: Padding(
                                 padding: const EdgeInsets.all(4),
-                                child: Icon(
+                                child: Obx(() => Icon(
                                   controller.isPlaying.value 
                                     ? Icons.pause_circle_filled 
                                     : Icons.play_circle_filled,
                                   color: Theme.of(context).colorScheme.primary,
                                   size: 32,
-                                ),
+                                )),
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -218,22 +218,26 @@ class SummaryView extends GetView<SummaryController> {
                               ),
                             ),
                             // Audio duration
-                            if (controller.totalDuration.value.inSeconds > 0)
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: Theme.of(context).colorScheme.surface,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  controller.formatDuration(controller.totalDuration.value),
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                    fontWeight: FontWeight.w500,
+                            Obx(() {
+                              if (controller.totalDuration.value.inSeconds > 0) {
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context).colorScheme.surface,
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
-                                ),
-                              ),
+                                  child: Text(
+                                    controller.formatDuration(controller.totalDuration.value),
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                );
+                              }
+                              return const SizedBox.shrink();
+                            }),
                             const SizedBox(width: 8),
                             // Expand/collapse icon
                             Icon(
@@ -265,13 +269,13 @@ class SummaryView extends GetView<SummaryController> {
                                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                 child: Row(
                                   children: [
-                                    Text(
+                                    Obx(() => Text(
                                       controller.formatDuration(controller.currentPosition.value),
                                       style: TextStyle(
                                         fontSize: 12,
                                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                                       ),
-                                    ),
+                                    )),
                                     Expanded(
                                       child: SliderTheme(
                                         data: SliderTheme.of(context).copyWith(
@@ -279,22 +283,22 @@ class SummaryView extends GetView<SummaryController> {
                                           thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 5),
                                           overlayShape: const RoundSliderOverlayShape(overlayRadius: 10),
                                         ),
-                                        child: Slider(
+                                        child: Obx(() => Slider(
                                           value: controller.currentPosition.value.inSeconds.toDouble(),
                                           max: controller.totalDuration.value.inSeconds.toDouble(),
                                           onChanged: (value) {
                                             controller.seekTo(Duration(seconds: value.toInt()));
                                           },
-                                        ),
+                                        )),
                                       ),
                                     ),
-                                    Text(
+                                    Obx(() => Text(
                                       controller.formatDuration(controller.totalDuration.value),
                                       style: TextStyle(
                                         fontSize: 12,
                                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                                       ),
-                                    ),
+                                    )),
                                   ],
                                 ),
                               ),
@@ -322,7 +326,7 @@ class SummaryView extends GetView<SummaryController> {
                   ],
                 ),
               ),
-            ),
+            )),
             
             // Bottom section: Summary (takes remaining space)
             Expanded(
@@ -361,15 +365,19 @@ class SummaryView extends GetView<SummaryController> {
                                   ),
                                 ),
                                 const SizedBox(height: 2),
-                                if (controller.hasSummaryContent)
-                                  Text(
-                                    controller.summaryStats,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
+                                Obx(() {
+                                  if (controller.hasSummaryContent) {
+                                    return Text(
+                                      controller.summaryStats,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    );
+                                  }
+                                  return const SizedBox.shrink();
+                                }),
                               ],
                             ),
                           ),
@@ -377,34 +385,38 @@ class SummaryView extends GetView<SummaryController> {
                           if (controller.transcript.value.isNotEmpty)
                             IconButton(
                               onPressed: () => _showPromptDialog(context),
-                              icon: Icon(
+                              icon: Obx(() => Icon(
                                 controller.isUsingCustomPrompt.value 
                                     ? Icons.edit_note
                                     : Icons.edit_note_outlined,
                                 color: controller.isUsingCustomPrompt.value 
                                     ? Theme.of(context).colorScheme.primary
                                     : Colors.grey[600],
-                              ),
+                              )),
                               tooltip: 'Customize Prompt',
                             ),
                           // Show generating status if summary is being generated
-                          if (controller.isGeneratingSummary.value)
-                            Row(
-                              children: [
-                                const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
+                          Obx(() {
+                            if (controller.isGeneratingSummary.value) {
+                              return Row(
+                                children: [
+                                  const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(width: 8),
-                                const Text(
-                                  'Generating...',
-                                  style: TextStyle(fontSize: 14),
-                                ),
-                              ],
-                            ),
+                                  const SizedBox(width: 8),
+                                  const Text(
+                                    'Generating...',
+                                    style: TextStyle(fontSize: 14),
+                                  ),
+                                ],
+                              );
+                            }
+                            return const SizedBox.shrink();
+                          }),
                         ],
                       ),
                     ),
@@ -440,26 +452,15 @@ class SummaryView extends GetView<SummaryController> {
                                         Icon(Icons.timer, size: 16, color: Colors.grey[600]),
                                         const SizedBox(width: 4),
                                         Text(
-                                          'Duration: ${controller.meetingData['duration'] ?? '00:00'}',
-                                          style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                                          controller.meetingData['duration'] ?? '00:00',
+                                          style: TextStyle(color: Colors.grey[600]),
                                         ),
                                         const SizedBox(width: 16),
-                                        Icon(Icons.people, size: 16, color: Colors.grey[600]),
+                                        Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
                                         const SizedBox(width: 4),
                                         Text(
-                                          'Participants: ${controller.meetingData['participants'] ?? '1'}',
-                                          style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Row(
-                                      children: [
-                                        Icon(Icons.note, size: 16, color: Colors.grey[600]),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          'Notes: ${controller.meetingData['notes']?.length ?? 0}',
-                                          style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                                          DateTime.now().toString().substring(0, 16),
+                                          style: TextStyle(color: Colors.grey[600]),
                                         ),
                                       ],
                                     ),
@@ -467,24 +468,155 @@ class SummaryView extends GetView<SummaryController> {
                                 ),
                               ),
                               
+                              // Show prompt indicator and no summary message
+                              if (controller.summary.value.isEmpty && controller.transcript.value.isNotEmpty) ...[
+                                // Custom prompt indicator
+                                Obx(() {
+                                  if (controller.isUsingCustomPrompt.value && controller.customPrompt.value.isNotEmpty) {
+                                    return Container(
+                                      margin: const EdgeInsets.only(top: 16, bottom: 8),
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+                                        ),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Icon(
+                                                Icons.edit_note,
+                                                size: 16,
+                                                color: Theme.of(context).colorScheme.primary,
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                'Custom Prompt Active',
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Theme.of(context).colorScheme.primary,
+                                                  fontSize: 12,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            controller.customPrompt.value.length > 100
+                                                ? '${controller.customPrompt.value.substring(0, 100)}...'
+                                                : controller.customPrompt.value,
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey[700],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  }
+                                  return const SizedBox.shrink();
+                                }),
+                                Center(
+                                  child: Obx(() {
+                                    if (controller.isGeneratingSummary.value) {
+                                      return Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          const SizedBox(height: 40),
+                                          const CircularProgressIndicator(),
+                                          const SizedBox(height: 16),
+                                          Text(
+                                            '正在生成摘要...',
+                                            style: TextStyle(
+                                              fontSize: 18,
+                                              color: Theme.of(context).colorScheme.primary,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            '这可能需要几秒钟时间',
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              color: Colors.grey[600],
+                                            ),
+                                          ),
+                                          const SizedBox(height: 40),
+                                        ],
+                                      );
+                                    } else {
+                                      return Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          const SizedBox(height: 40),
+                                          Icon(
+                                            Icons.summarize_outlined,
+                                            size: 64,
+                                            color: Colors.grey[400],
+                                          ),
+                                          const SizedBox(height: 16),
+                                          Text(
+                                            '暂无摘要',
+                                            style: TextStyle(
+                                              fontSize: 18,
+                                              color: Colors.grey[600],
+                                            ),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            controller.isUsingCustomPrompt.value
+                                                ? '使用自定义提示生成摘要'
+                                                : '正在准备生成摘要',
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              color: Colors.grey[500],
+                                            ),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                          const SizedBox(height: 40),
+                                        ],
+                                      );
+                                    }
+                                  }),
+                                ),
+                              ],
+                              
                               // Summary, Key Points, and To-Do sections
                               const SizedBox(height: 20),
                               
                               // Summary Section
-                              if (controller.summary.value.isNotEmpty) ...[
-                                ..._buildSummarySection(context),
-                              ],
+                              Obx(() {
+                                if (controller.summary.value.isNotEmpty) {
+                                  return Column(
+                                    children: _buildSummarySection(context),
+                                  );
+                                }
+                                return const SizedBox.shrink();
+                              }),
                               
                               // Key Points Section
-                              if (controller.keyPoints.isNotEmpty) ...[
-                                ..._buildKeyPointsSection(context),
-                              ],
+                              Obx(() {
+                                if (controller.keyPoints.isNotEmpty) {
+                                  return Column(
+                                    children: _buildKeyPointsSection(context),
+                                  );
+                                }
+                                return const SizedBox.shrink();
+                              }),
                               
                               // To-Do List Section
-                              if (controller.actionItems.isNotEmpty) ...[
-                                ..._buildToDoSection(context),
-                              ],
-                            ],
+                              Obx(() {
+                                if (controller.actionItems.isNotEmpty) {
+                                  return Column(
+                                    children: _buildToDoSection(context),
+                                  );
+                                }
+                                return const SizedBox.shrink();
+                              }),
+                            ),
                           ),
                         ),
                       ),
@@ -569,27 +701,35 @@ class SummaryView extends GetView<SummaryController> {
                 Container(
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(8),
+                    color: Theme.of(context).colorScheme.primary,
+                    borderRadius: BorderRadius.circular(6),
                   ),
                   child: Icon(
                     Icons.summarize,
-                    size: 20,
-                    color: Theme.of(context).colorScheme.primary,
+                    color: Theme.of(context).colorScheme.onPrimary,
+                    size: 16,
                   ),
                 ),
-                const SizedBox(width: 12),
-                const Text(
-                  'Summary',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                const SizedBox(width: 8),
+                Text(
+                  'Meeting Summary',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                 ),
               ],
             ),
             const SizedBox(height: 12),
-            Obx(() => Text(
+            Text(
               controller.summary.value,
-              style: const TextStyle(fontSize: 16, height: 1.6),
-            )),
+              style: const TextStyle(
+                fontSize: 15,
+                height: 1.6,
+                letterSpacing: 0.2,
+              ),
+            ),
           ],
         ),
       ),
@@ -604,7 +744,14 @@ class SummaryView extends GetView<SummaryController> {
         margin: const EdgeInsets.only(bottom: 16),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.tertiaryContainer.withValues(alpha: 0.2),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Theme.of(context).colorScheme.tertiaryContainer.withValues(alpha: 0.3),
+              Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.2),
+            ],
+          ),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: Theme.of(context).colorScheme.tertiary.withValues(alpha: 0.3),
@@ -618,23 +765,27 @@ class SummaryView extends GetView<SummaryController> {
                 Container(
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.tertiary.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(8),
+                    color: Theme.of(context).colorScheme.tertiary,
+                    borderRadius: BorderRadius.circular(6),
                   ),
                   child: Icon(
-                    Icons.lightbulb_outline,
-                    size: 20,
+                    Icons.lightbulb,
+                    color: Theme.of(context).colorScheme.onTertiary,
+                    size: 16,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Key Points',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
                     color: Theme.of(context).colorScheme.tertiary,
                   ),
                 ),
-                const SizedBox(width: 12),
-                const Text(
-                  'Key Points',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
                 const Spacer(),
-                Obx(() => Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: Theme.of(context).colorScheme.tertiary.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(12),
@@ -643,58 +794,69 @@ class SummaryView extends GetView<SummaryController> {
                     '${controller.keyPoints.length}',
                     style: TextStyle(
                       fontSize: 12,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w600,
                       color: Theme.of(context).colorScheme.tertiary,
                     ),
                   ),
-                )),
+                ),
               ],
             ),
             const SizedBox(height: 12),
             ...controller.keyPoints.asMap().entries.map((entry) {
               final index = entry.key;
               final point = entry.value;
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 8),
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+                  ),
+                ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
                       width: 24,
                       height: 24,
-                      margin: const EdgeInsets.only(right: 12, top: 2),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.tertiary.withValues(alpha: 0.2),
-                        shape: BoxShape.circle,
+                        color: Theme.of(context).colorScheme.tertiary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       child: Center(
                         child: Text(
                           '${index + 1}',
                           style: TextStyle(
                             fontSize: 12,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w600,
                             color: Theme.of(context).colorScheme.tertiary,
                           ),
                         ),
                       ),
                     ),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         point,
-                        style: const TextStyle(fontSize: 15, height: 1.5),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          height: 1.4,
+                        ),
                       ),
                     ),
                   ],
                 ),
               );
-            }).toList(),
+            }),
           ],
         ),
       ),
     ];
   }
   
-  // Build To-Do Section
+  // Build To-Do List Section
   List<Widget> _buildToDoSection(BuildContext context) {
     return [
       Container(
@@ -702,10 +864,17 @@ class SummaryView extends GetView<SummaryController> {
         margin: const EdgeInsets.only(bottom: 16),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.errorContainer.withValues(alpha: 0.1),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Theme.of(context).colorScheme.secondaryContainer.withValues(alpha: 0.3),
+              Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.2),
+            ],
+          ),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: Theme.of(context).colorScheme.error.withValues(alpha: 0.2),
+            color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.3),
           ),
         ),
         child: Column(
@@ -716,153 +885,222 @@ class SummaryView extends GetView<SummaryController> {
                 Container(
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.error.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
+                    color: Theme.of(context).colorScheme.secondary,
+                    borderRadius: BorderRadius.circular(6),
                   ),
                   child: Icon(
                     Icons.checklist,
-                    size: 20,
-                    color: Theme.of(context).colorScheme.error,
+                    color: Theme.of(context).colorScheme.onSecondary,
+                    size: 16,
                   ),
                 ),
-                const SizedBox(width: 12),
-                const Text(
+                const SizedBox(width: 8),
+                Text(
                   'Action Items',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.secondary,
+                  ),
                 ),
                 const Spacer(),
-                Obx(() => Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.error.withValues(alpha: 0.1),
+                    color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
                     '${controller.actionItems.length}',
                     style: TextStyle(
                       fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.error,
-                    ),
-                  ),
-                )),
-              ],
-            ),
-            const SizedBox(height: 12),
-            ...controller.actionItems.asMap().entries.map((entry) {
-              final index = entry.key;
-              final item = entry.value;
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: InkWell(
-                  onTap: () => controller.toggleActionItemCompletion(index),
-                  borderRadius: BorderRadius.circular(8),
-                  child: Padding(
-                    padding: const EdgeInsets.all(4),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          width: 24,
-                          height: 24,
-                          margin: const EdgeInsets.only(right: 12, top: 2),
-                          decoration: BoxDecoration(
-                            border: Border.all(
-                              color: Theme.of(context).colorScheme.error,
-                              width: 2,
-                            ),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: const SizedBox(),
-                        ),
-                        Expanded(
-                          child: Text(
-                            item,
-                            style: const TextStyle(fontSize: 15, height: 1.5),
-                          ),
-                        ),
-                      ],
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(context).colorScheme.secondary,
                     ),
                   ),
                 ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            ...controller.actionItems.map((item) {
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 20,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: Theme.of(context).colorScheme.secondary,
+                          width: 2,
+                        ),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Icon(
+                        Icons.check,
+                        size: 14,
+                        color: Colors.transparent,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        item,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               );
-            }).toList(),
+            }),
           ],
         ),
       ),
     ];
   }
   
-  // Show prompt customization dialog
   void _showPromptDialog(BuildContext context) {
+    // Initialize prompt controller with current custom prompt
+    final controller = Get.find<SummaryController>();
     controller.promptController.text = controller.customPrompt.value;
     
     Get.dialog(
       AlertDialog(
-        title: const Text('Customize Summary Prompt'),
+        title: const Row(
+          children: [
+            Icon(Icons.edit_note),
+            SizedBox(width: 8),
+            Text('Customize Summary Prompt'),
+          ],
+        ),
         content: SizedBox(
           width: double.maxFinite,
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Customize how the AI analyzes your meeting transcript',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[600],
+              // Toggle between default and custom prompt
+              Obx(() => SwitchListTile(
+                title: const Text('Use Custom Prompt'),
+                subtitle: Text(
+                  controller.isUsingCustomPrompt.value
+                      ? 'Custom prompt will be used for summary generation'
+                      : 'Default structured prompt will be used',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
                 ),
-              ),
+                value: controller.isUsingCustomPrompt.value,
+                onChanged: (value) => controller.toggleCustomPrompt(),
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+              )),
               const SizedBox(height: 16),
-              TextField(
-                controller: controller.promptController,
-                maxLines: 5,
-                decoration: InputDecoration(
-                  hintText: 'Enter your custom prompt...',
-                  border: const OutlineInputBorder(),
-                  filled: true,
-                  fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Obx(() => Switch(
-                    value: controller.isUsingCustomPrompt.value,
-                    onChanged: (value) {
-                      controller.isUsingCustomPrompt.value = value;
-                      if (value && controller.customPrompt.value.isEmpty) {
-                        controller.customPrompt.value = 'Please analyze the following meeting transcript and provide a detailed summary with key insights:';
-                        controller.promptController.text = controller.customPrompt.value;
-                      }
-                    },
-                  )),
-                  const SizedBox(width: 8),
-                  const Text('Use Custom Prompt'),
-                ],
-              ),
+              // Custom prompt text field
+              Obx(() {
+                if (controller.isUsingCustomPrompt.value) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Custom Prompt:',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: controller.promptController,
+                        maxLines: 6,
+                        decoration: const InputDecoration(
+                          hintText: 'Enter your custom prompt here...\n\nExample: "Analyze this meeting and focus on technical decisions and next steps"',
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.all(12),
+                        ),
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Note: The meeting transcript will be automatically appended to your prompt.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ],
+                  );
+                } else {
+                  return Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Default Prompt:',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'The default prompt will analyze the transcript and provide:\n• Brief summary (2-3 sentences)\n• Key points discussed\n• Action items identified',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+              }),
             ],
           ),
         ),
         actions: [
           TextButton(
-            onPressed: () {
-              controller.resetToDefaultPrompt();
-              Get.back();
-            },
-            child: const Text('Reset to Default'),
-          ),
-          TextButton(
             onPressed: () => Get.back(),
             child: const Text('Cancel'),
           ),
+          if (controller.isUsingCustomPrompt.value)
+            TextButton(
+              onPressed: () {
+                controller.resetToDefaultPrompt();
+                Get.back();
+              },
+              child: const Text('Reset to Default'),
+            ),
           ElevatedButton(
             onPressed: () {
-              controller.updateCustomPrompt(controller.promptController.text);
-              controller.saveCustomPrompt();
+              if (controller.isUsingCustomPrompt.value) {
+                controller.saveCustomPrompt();
+              }
               Get.back();
-              controller.regenerateSummary();
             },
-            child: const Text('Apply & Regenerate'),
+            child: Text(
+              controller.isUsingCustomPrompt.value ? 'Save Prompt' : 'Done',
+            ),
           ),
         ],
       ),
