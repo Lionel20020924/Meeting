@@ -20,12 +20,31 @@ class LoginController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    
+    // Clear any existing state first
+    _clearState();
+    
     // Load saved email if remember me was checked
     loadSavedCredentials();
     
     // Add listeners for real-time validation
     emailController.addListener(_validateEmail);
     passwordController.addListener(_validatePassword);
+  }
+  
+  void _clearState() {
+    // Reset all states to initial values
+    showPassword.value = false;
+    rememberMe.value = false;
+    isLoading.value = false;
+    emailError.value = '';
+    passwordError.value = '';
+    isEmailValid.value = false;
+    isPasswordValid.value = false;
+    
+    // Clear text controllers
+    emailController.clear();
+    passwordController.clear();
   }
 
   @override

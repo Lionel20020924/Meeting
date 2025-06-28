@@ -274,14 +274,11 @@ class ProfileController extends GetxController {
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () async {
+            onPressed: () {
+              // Close dialog first
               Get.back();
-              
-              // Clear profile data
-              await ProfileService.clearProfile();
-              
-              // Clear all pages and go to login
-              Get.offAllNamed(Routes.LOGIN);
+              // Call the actual logout process
+              _performLogout();
             },
             child: const Text(
               'Logout',
@@ -291,6 +288,71 @@ class ProfileController extends GetxController {
         ],
       ),
     );
+  }
+  
+  Future<void> _performLogout() async {
+    try {
+      // Show loading dialog
+      Get.dialog(
+        const Center(
+          child: CircularProgressIndicator(),
+        ),
+        barrierDismissible: false,
+      );
+      
+      // Clear profile data
+      final cleared = await ProfileService.clearProfile();
+      if (!cleared) {
+        throw Exception('Failed to clear profile data');
+      }
+      
+      // Clear any cached data in memory
+      profileData.clear();
+      nameController.clear();
+      emailController.clear();
+      phoneController.clear();
+      companyController.clear();
+      positionController.clear();
+      departmentController.clear();
+      bioController.clear();
+      
+      // Reset statistics
+      totalMeetings.value = 0;
+      weeklyMeetings.value = 0;
+      monthlyMeetings.value = 0;
+      averageDuration.value = 0;
+      
+      // Small delay to ensure everything is cleared
+      await Future.delayed(const Duration(milliseconds: 500));
+      
+      // Close loading dialog and navigate to login
+      if (Get.isDialogOpen ?? false) {
+        Get.back(); // Close loading dialog
+      }
+      
+      // Navigate to login page
+      Get.offAllNamed(Routes.LOGIN);
+      
+    } catch (e) {
+      // Close loading dialog if open
+      if (Get.isDialogOpen ?? false) {
+        Get.back();
+      }
+      
+      if (Get.isLogEnable) {
+        Get.log('Logout error: $e');
+      }
+      
+      // Show error message
+      Get.snackbar(
+        'Logout Failed',
+        'An error occurred while logging out. Please try again.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 3),
+      );
+    }
   }
   
   String formatDuration(int seconds) {
