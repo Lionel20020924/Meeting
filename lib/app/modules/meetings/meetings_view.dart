@@ -11,7 +11,7 @@ class MeetingsView extends GetView<MeetingsController> {
   Widget build(BuildContext context) {
     return Obx(() => PopScope(
       canPop: controller.searchQuery.value.isEmpty,
-      onPopInvoked: (didPop) {
+      onPopInvokedWithResult: (didPop, result) {
         if (!didPop && controller.searchQuery.value.isNotEmpty) {
           controller.clearSearch();
         }

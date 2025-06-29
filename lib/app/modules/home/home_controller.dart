@@ -13,6 +13,14 @@ class HomeController extends GetxController {
       // For other pages, use the index directly
       // Index 0: Meetings, Index 2: Profile
       currentIndex.value = index;
+      update(); // Trigger GetBuilder update
     }
+  }
+  
+  @override
+  void onInit() {
+    super.onInit();
+    // Reset to meetings page when returning to home
+    currentIndex.value = 0;
   }
 }

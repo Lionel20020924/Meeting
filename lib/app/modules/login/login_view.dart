@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'dart:ui';
 
 import 'login_controller.dart';
 
@@ -11,12 +10,11 @@ class LoginView extends GetView<LoginController> {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final padding = MediaQuery.of(context).padding;
-    final viewInsets = MediaQuery.of(context).viewInsets;
     
-    // 根据屏幕高度动态计算间距
-    final availableHeight = size.height - padding.top - padding.bottom - viewInsets.bottom;
-    final isSmallScreen = availableHeight < 700; // iPhone SE等小屏设备
-    final isCompact = availableHeight < 800; // iPhone 12 mini等
+    // 根据屏幕高度动态计算间距 - 不考虑键盘高度以保持固定布局
+    final availableHeight = size.height - padding.top - padding.bottom;
+    final isSmallScreen = availableHeight < 600; // 更严格的小屏判断
+    final isCompact = availableHeight < 700; // 调整紧凑模式阈值
     
     return Scaffold(
       resizeToAvoidBottomInset: false,
@@ -26,55 +24,41 @@ class LoginView extends GetView<LoginController> {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Theme.of(context).colorScheme.primary.withOpacity(0.8),
-              Theme.of(context).colorScheme.secondary.withOpacity(0.6),
-              Theme.of(context).colorScheme.tertiary.withOpacity(0.4),
+              Theme.of(context).colorScheme.primary.withValues(alpha: 0.8),
+              Theme.of(context).colorScheme.secondary.withValues(alpha: 0.6),
+              Theme.of(context).colorScheme.tertiary.withValues(alpha: 0.4),
             ],
           ),
         ),
         child: SafeArea(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              return SingleChildScrollView(
-                physics: const ClampingScrollPhysics(),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    minHeight: constraints.maxHeight,
-                  ),
-                  child: IntrinsicHeight(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: isSmallScreen ? 16.0 : 24.0,
-                        vertical: isSmallScreen ? 12.0 : 20.0,
-                      ),
-                      child: Column(
-                        children: [
-                          // 动态调整顶部空间
-                          SizedBox(height: isSmallScreen ? 8 : isCompact ? 16 : 24),
-                          
-                          // Animated Logo Section
-                          _buildLogoSection(context, isSmallScreen: isSmallScreen),
-                          
-                          // 动态间距
-                          SizedBox(height: isSmallScreen ? 16 : isCompact ? 24 : 32),
-                          
-                          // Glassmorphism Login Card
-                          Expanded(
-                            child: _buildLoginCard(context, 
-                              isSmallScreen: isSmallScreen,
-                              isCompact: isCompact
-                            ),
-                          ),
-                          
-                          // 底部留白
-                          SizedBox(height: isSmallScreen ? 8 : 16),
-                        ],
-                      ),
-                    ),
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: isSmallScreen ? 16.0 : 24.0,
+              vertical: isSmallScreen ? 8.0 : 12.0,
+            ),
+            child: Column(
+              children: [
+                // 顶部空间 - 减少以适应固定布局
+                SizedBox(height: isSmallScreen ? 4 : 8),
+                
+                // Logo Section - 更小的尺寸
+                _buildLogoSection(context, isSmallScreen: isSmallScreen),
+                
+                // 最小间距
+                const SizedBox(height: 8),
+                
+                // Login Card - 使用Expanded填充剩余空间
+                Expanded(
+                  child: _buildLoginCard(context, 
+                    isSmallScreen: isSmallScreen,
+                    isCompact: isCompact
                   ),
                 ),
-              );
-            },
+                
+                // 底部留白 - 最小化
+                const SizedBox(height: 8),
+              ],
+            ),
           ),
         ),
       ),
@@ -93,30 +77,30 @@ class LoginView extends GetView<LoginController> {
             children: [
               // Animated Logo Container
               Container(
-                width: isSmallScreen ? 80 : 100,
-                height: isSmallScreen ? 80 : 100,
+                width: isSmallScreen ? 60 : 80,
+                height: isSmallScreen ? 60 : 80,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      Colors.white.withOpacity(0.9),
-                      Colors.white.withOpacity(0.7),
+                  Colors.white.withValues(alpha: 0.9),
+                  Colors.white.withValues(alpha: 0.7),
                     ],
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
-                      blurRadius: 20,
-                      spreadRadius: 5,
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+                  blurRadius: 20,
+                  spreadRadius: 5,
                     ),
                   ],
                 ),
                 child: Center(
                   child: Icon(
                     Icons.meeting_room_rounded,
-                    size: isSmallScreen ? 40 : 50,
+                    size: isSmallScreen ? 30 : 40,
                     color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
@@ -128,12 +112,12 @@ class LoginView extends GetView<LoginController> {
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
                   letterSpacing: 1.2,
-                  fontSize: isSmallScreen ? 28 : null,
+                  fontSize: isSmallScreen ? 24 : 28,
                   shadows: [
                     Shadow(
-                      color: Colors.black26,
-                      offset: const Offset(0, 2),
-                      blurRadius: 4,
+                  color: Colors.black26,
+                  offset: const Offset(0, 2),
+                  blurRadius: 4,
                     ),
                   ],
                 ),
@@ -142,13 +126,13 @@ class LoginView extends GetView<LoginController> {
               Text(
                 'Record and summarize your meetings',
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: Colors.white.withOpacity(0.9),
+                  color: Colors.white.withValues(alpha: 0.9),
                   fontSize: isSmallScreen ? 14 : 16,
                   shadows: [
                     Shadow(
-                      color: Colors.black26,
-                      offset: const Offset(0, 1),
-                      blurRadius: 2,
+                  color: Colors.black26,
+                  offset: const Offset(0, 1),
+                  blurRadius: 2,
                     ),
                   ],
                 ),
@@ -173,206 +157,200 @@ class LoginView extends GetView<LoginController> {
           offset: Offset(0, 50 * (1 - delayedValue)),
           child: Opacity(
             opacity: delayedValue,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(24),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                child: Container(
-                  padding: EdgeInsets.all(isSmallScreen ? 20 : 28),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(
-                      color: Colors.white.withOpacity(0.2),
-                      width: 1.5,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 20,
-                        spreadRadius: 5,
-                      ),
-                    ],
+            child: Container(
+              padding: EdgeInsets.all(isSmallScreen ? 16 : 20),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  width: 1.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.1),
+                    blurRadius: 20,
+                    spreadRadius: 5,
                   ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Email field
-                      Obx(() => _buildTextField(
-                        controller: controller.emailController,
-                        label: 'Email',
-                        hint: 'Enter your email',
-                        icon: Icons.email_outlined,
-                        keyboardType: TextInputType.emailAddress,
-                        textInputAction: TextInputAction.next,
-                        errorText: controller.emailError.value,
-                        isValid: controller.isEmailValid.value,
-                        isSmallScreen: isSmallScreen,
-                      )),
-                      SizedBox(height: isSmallScreen ? 12 : 16),
-                      
-                      // Password field
-                      Obx(() => _buildTextField(
-                        controller: controller.passwordController,
-                        label: 'Password',
-                        hint: 'Enter your password',
-                        icon: Icons.lock_outline,
-                        obscureText: !controller.showPassword.value,
-                        textInputAction: TextInputAction.done,
-                        onSubmitted: (_) => controller.login(),
-                        errorText: controller.passwordError.value,
-                        isValid: controller.isPasswordValid.value,
-                        isSmallScreen: isSmallScreen,
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            controller.showPassword.value
-                                ? Icons.visibility_off_outlined
-                                : Icons.visibility_outlined,
-                            color: Colors.white70,
-                            size: isSmallScreen ? 20 : 24,
-                          ),
-                          onPressed: controller.togglePasswordVisibility,
-                        ),
-                      )),
-                      SizedBox(height: isSmallScreen ? 12 : 16),
-                      
-                      // Remember me & Forgot password - 只在非小屏显示
-                      if (!isSmallScreen) ...[
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Row(
-                              children: [
-                                Obx(() => Theme(
-                                  data: Theme.of(context).copyWith(
-                                    unselectedWidgetColor: Colors.white70,
-                                  ),
-                                  child: SizedBox(
-                                    width: 24,
-                                    height: 24,
-                                    child: Checkbox(
-                                      value: controller.rememberMe.value,
-                                      onChanged: (value) =>
-                                          controller.rememberMe.value = value ?? false,
-                                      checkColor: Theme.of(context).colorScheme.primary,
-                                      fillColor: WidgetStateProperty.resolveWith((states) {
-                                        if (states.contains(WidgetState.selected)) {
-                                          return Colors.white;
-                                        }
-                                        return Colors.transparent;
-                                      }),
-                                    ),
-                                  ),
-                                )),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Remember me',
-                                  style: TextStyle(
-                                    color: Colors.white.withOpacity(0.9),
-                                    fontSize: 14,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            TextButton(
-                              onPressed: controller.forgotPassword,
-                              style: TextButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(horizontal: 8),
-                              ),
-                              child: Text(
-                                'Forgot password?',
-                                style: TextStyle(
-                                  color: Colors.white.withOpacity(0.9),
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 20),
-                      ] else
-                        const SizedBox(height: 8),
-                      
-                      // Login button
-                      _buildLoginButton(context, isSmallScreen: isSmallScreen),
-                      SizedBox(height: isSmallScreen ? 12 : 16),
-                      
-                      // Quick login button - 移到登录按钮正下方，更显眼
-                      _buildQuickLoginButton(context, isSmallScreen: isSmallScreen),
-                      SizedBox(height: isSmallScreen ? 12 : 20),
-                      
-                      // Or divider - 简化样式
-                      if (!isSmallScreen) ...[
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Email field
+                  Obx(() => _buildTextField(
+                    controller: controller.emailController,
+                    label: 'Email',
+                    hint: 'Enter your email',
+                    icon: Icons.email_outlined,
+                    keyboardType: TextInputType.emailAddress,
+                    textInputAction: TextInputAction.next,
+                    errorText: controller.emailError.value,
+                    isValid: controller.isEmailValid.value,
+                    isSmallScreen: isSmallScreen,
+                  )),
+                  SizedBox(height: isSmallScreen ? 12 : 16),
+                  
+                  // Password field
+                  Obx(() => _buildTextField(
+                    controller: controller.passwordController,
+                    label: 'Password',
+                    hint: 'Enter your password',
+                    icon: Icons.lock_outline,
+                    obscureText: !controller.showPassword.value,
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (_) => controller.login(),
+                    errorText: controller.passwordError.value,
+                    isValid: controller.isPasswordValid.value,
+                    isSmallScreen: isSmallScreen,
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        controller.showPassword.value
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined,
+                        color: Colors.white70,
+                        size: isSmallScreen ? 20 : 24,
+                      ),
+                      onPressed: controller.togglePasswordVisibility,
+                    ),
+                  )),
+                  SizedBox(height: isSmallScreen ? 12 : 16),
+                  
+                  // Remember me & Forgot password - 只在非小屏显示
+                  if (!isSmallScreen) ...[
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
                         Row(
                           children: [
-                            Expanded(
-                              child: Divider(
-                                color: Colors.white.withOpacity(0.3),
-                                thickness: 1,
+                            Obx(() => Theme(
+                              data: Theme.of(context).copyWith(
+                                unselectedWidgetColor: Colors.white70,
                               ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 12),
-                              child: Text(
-                                'OR',
-                                style: TextStyle(
-                                  color: Colors.white.withOpacity(0.7),
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 12,
+                              child: SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: Checkbox(
+                                  value: controller.rememberMe.value,
+                                  onChanged: (value) =>
+                                      controller.rememberMe.value = value ?? false,
+                                  checkColor: Theme.of(context).colorScheme.primary,
+                                  fillColor: WidgetStateProperty.resolveWith((states) {
+                                    if (states.contains(WidgetState.selected)) {
+                                      return Colors.white;
+                                    }
+                                    return Colors.transparent;
+                                  }),
                                 ),
                               ),
-                            ),
-                            Expanded(
-                              child: Divider(
-                                color: Colors.white.withOpacity(0.3),
-                                thickness: 1,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-                      
-                      // Social login buttons - 优化布局
-                      if (!isSmallScreen)
-                        _buildSocialLoginButtons(context, isCompact: isCompact)
-                      else
-                        _buildCompactSocialLogin(context),
-                      
-                      // Sign up - 简化并合并到底部
-                      if (!isSmallScreen) ...[
-                        const SizedBox(height: 20),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
+                            )),
+                            const SizedBox(width: 8),
                             Text(
-                              "Don't have an account?",
+                              'Remember me',
                               style: TextStyle(
-                                color: Colors.white.withOpacity(0.8),
+                                color: Colors.white.withValues(alpha: 0.9),
                                 fontSize: 14,
                               ),
                             ),
-                            TextButton(
-                              onPressed: controller.goToSignUp,
-                              style: TextButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(horizontal: 4),
-                              ),
-                              child: const Text(
-                                'Sign up',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ),
                           ],
                         ),
+                        TextButton(
+                          onPressed: controller.forgotPassword,
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                          ),
+                          child: Text(
+                            'Forgot password?',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.9),
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
                       ],
-                    ],
-                  ),
-                ),
+                    ),
+                    const SizedBox(height: 20),
+                  ] else
+                    const SizedBox(height: 8),
+                  
+                  // Login button
+                  _buildLoginButton(context, isSmallScreen: isSmallScreen),
+                  SizedBox(height: isSmallScreen ? 12 : 16),
+                  
+                  // Quick login button - 移到登录按钮正下方，更显眼
+                  _buildQuickLoginButton(context, isSmallScreen: isSmallScreen),
+                  SizedBox(height: isSmallScreen ? 12 : 20),
+                  
+                  // Or divider - 简化样式
+                  if (!isSmallScreen) ...[
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Divider(
+                            color: Colors.white.withValues(alpha: 0.3),
+                            thickness: 1,
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Text(
+                            'OR',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.7),
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: Divider(
+                            color: Colors.white.withValues(alpha: 0.3),
+                            thickness: 1,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                  
+                  // Social login buttons - 优化布局
+                  if (!isSmallScreen)
+                    _buildSocialLoginButtons(context, isCompact: isCompact)
+                  else
+                    _buildCompactSocialLogin(context),
+                  
+                  // Sign up - 简化并合并到底部
+                  if (!isSmallScreen) ...[
+                    const SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          "Don't have an account?",
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.8),
+                            fontSize: 14,
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: controller.goToSignUp,
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                          ),
+                          child: const Text(
+                            'Sign up',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
               ),
             ),
           ),
@@ -402,13 +380,13 @@ class LoginView extends GetView<LoginController> {
           duration: const Duration(milliseconds: 300),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            color: Colors.white.withOpacity(0.1),
+            color: Colors.white.withValues(alpha: 0.1),
             border: Border.all(
               color: errorText != null && errorText.isNotEmpty
-                  ? Colors.red.withOpacity(0.5)
+                  ? Colors.red.withValues(alpha: 0.5)
                   : isValid == true
-                      ? Colors.green.withOpacity(0.5)
-                      : Colors.white.withOpacity(0.2),
+                  ? Colors.green.withValues(alpha: 0.5)
+                  : Colors.white.withValues(alpha: 0.2),
               width: errorText != null && errorText.isNotEmpty ? 2 : 1,
             ),
           ),
@@ -423,11 +401,11 @@ class LoginView extends GetView<LoginController> {
               labelText: label,
               hintText: hint,
               labelStyle: TextStyle(
-                color: Colors.white.withOpacity(0.8),
+                color: Colors.white.withValues(alpha: 0.8),
                 fontSize: isSmallScreen ? 14 : 16,
               ),
               hintStyle: TextStyle(
-                color: Colors.white.withOpacity(0.5),
+                color: Colors.white.withValues(alpha: 0.5),
                 fontSize: isSmallScreen ? 14 : 16,
               ),
               prefixIcon: Icon(
@@ -437,9 +415,9 @@ class LoginView extends GetView<LoginController> {
               ),
               suffixIcon: suffixIcon ?? (isValid == true
                   ? Icon(
-                      Icons.check_circle, 
-                      color: Colors.green.withOpacity(0.7),
-                      size: isSmallScreen ? 20 : 24,
+                  Icons.check_circle, 
+                  color: Colors.green.withValues(alpha: 0.7),
+                  size: isSmallScreen ? 20 : 24,
                     )
                   : null),
               border: InputBorder.none,
@@ -458,9 +436,9 @@ class LoginView extends GetView<LoginController> {
                   child: Text(
                     errorText,
                     style: TextStyle(
-                      color: Colors.red.shade300,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
+                  color: Colors.red.shade300,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
                     ),
                   ),
                 )
@@ -481,15 +459,15 @@ class LoginView extends GetView<LoginController> {
           colors: controller.isLoading.value
               ? [Colors.grey.shade400, Colors.grey.shade600]
               : [
-                  Colors.white.withOpacity(0.9),
-                  Colors.white.withOpacity(0.8),
+                  Colors.white.withValues(alpha: 0.9),
+                  Colors.white.withValues(alpha: 0.8),
                 ],
         ),
         boxShadow: controller.isLoading.value
             ? []
             : [
                 BoxShadow(
-                  color: Colors.white.withOpacity(0.3),
+                  color: Colors.white.withValues(alpha: 0.3),
                   blurRadius: 10,
                   spreadRadius: 2,
                 ),
@@ -562,9 +540,9 @@ class LoginView extends GetView<LoginController> {
         ),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
-          color: Colors.white.withOpacity(0.1),
+          color: Colors.white.withValues(alpha: 0.1),
           border: Border.all(
-            color: Colors.white.withOpacity(0.2),
+            color: Colors.white.withValues(alpha: 0.2),
             width: 1,
           ),
         ),
@@ -577,7 +555,7 @@ class LoginView extends GetView<LoginController> {
               Text(
                 label,
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.9),
+                  color: Colors.white.withValues(alpha: 0.9),
                   fontWeight: FontWeight.w600,
                   fontSize: isCompact ? 14 : 16,
                 ),
@@ -601,7 +579,7 @@ class LoginView extends GetView<LoginController> {
       label: Text(
         'Quick Login (Dev)',
         style: TextStyle(
-          color: Colors.white.withOpacity(0.9),
+          color: Colors.white.withValues(alpha: 0.9),
           fontWeight: FontWeight.w600,
           fontSize: isSmallScreen ? 14 : 16,
         ),
@@ -612,7 +590,7 @@ class LoginView extends GetView<LoginController> {
           vertical: isSmallScreen ? 10 : 12,
         ),
         side: BorderSide(
-          color: Colors.amber.withOpacity(0.5),
+          color: Colors.amber.withValues(alpha: 0.5),
           width: 1.5,
         ),
         shape: RoundedRectangleBorder(
@@ -632,7 +610,7 @@ class LoginView extends GetView<LoginController> {
           Text(
             'Or login with',
             style: TextStyle(
-              color: Colors.white.withOpacity(0.7),
+              color: Colors.white.withValues(alpha: 0.7),
               fontSize: 12,
             ),
           ),

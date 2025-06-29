@@ -18,7 +18,7 @@ class MeetingDetailView extends GetView<MeetingDetailController> {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                   Theme.of(context).colorScheme.surface,
                 ],
               ),
@@ -138,10 +138,10 @@ class MeetingDetailView extends GetView<MeetingDetailController> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.2),
+        color: Colors.white.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: Colors.white.withOpacity(0.3),
+          color: Colors.white.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -173,7 +173,7 @@ class MeetingDetailView extends GetView<MeetingDetailController> {
           scale: value,
           child: Card(
             elevation: 8,
-            shadowColor: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+            shadowColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
             ),
@@ -185,7 +185,7 @@ class MeetingDetailView extends GetView<MeetingDetailController> {
                   end: Alignment.bottomRight,
                   colors: [
                     Theme.of(context).colorScheme.surface,
-                    Theme.of(context).colorScheme.surface.withOpacity(0.95),
+                    Theme.of(context).colorScheme.surface.withValues(alpha: 0.95),
                   ],
                 ),
               ),
@@ -199,7 +199,7 @@ class MeetingDetailView extends GetView<MeetingDetailController> {
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Icon(
@@ -224,7 +224,7 @@ class MeetingDetailView extends GetView<MeetingDetailController> {
                         Container(
                           height: 60,
                           decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.primary.withOpacity(0.05),
+                            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Center(
@@ -241,7 +241,7 @@ class MeetingDetailView extends GetView<MeetingDetailController> {
                                   decoration: BoxDecoration(
                                     color: isActive
                                         ? Theme.of(context).colorScheme.primary
-                                        : Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                                        : Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
                                     borderRadius: BorderRadius.circular(2),
                                   ),
                                 );
@@ -273,7 +273,7 @@ class MeetingDetailView extends GetView<MeetingDetailController> {
                                 ),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
                                     blurRadius: 8,
                                     offset: const Offset(0, 4),
                                   ),
@@ -308,7 +308,7 @@ class MeetingDetailView extends GetView<MeetingDetailController> {
                         SliderTheme(
                           data: SliderTheme.of(context).copyWith(
                             activeTrackColor: Theme.of(context).colorScheme.primary,
-                            inactiveTrackColor: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+                            inactiveTrackColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
                             thumbColor: Theme.of(context).colorScheme.primary,
                             trackHeight: 6,
                             thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
@@ -349,7 +349,7 @@ class MeetingDetailView extends GetView<MeetingDetailController> {
                             margin: const EdgeInsets.only(top: 12),
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: Colors.red.withOpacity(0.1),
+                              color: Colors.red.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Row(
@@ -391,7 +391,7 @@ class MeetingDetailView extends GetView<MeetingDetailController> {
             opacity: delayedValue,
             child: Card(
               elevation: 8,
-              shadowColor: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+              shadowColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
               ),
@@ -408,7 +408,7 @@ class MeetingDetailView extends GetView<MeetingDetailController> {
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.secondary.withOpacity(0.1),
+                                color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Icon(
@@ -505,10 +505,10 @@ class MeetingDetailView extends GetView<MeetingDetailController> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+                          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
                         ),
                       ),
                       child: controller.transcription.value.isEmpty
