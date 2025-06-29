@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import '../../routes/app_pages.dart';
 
 class LoginController extends GetxController {
+  final formKey = GlobalKey<FormState>();
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
   

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'dart:math' as math;
 
 import 'profile_controller.dart';
 
@@ -10,166 +9,141 @@ class ProfileView extends GetView<ProfileController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: CustomScrollView(
         slivers: [
-          // Custom App Bar with Meeting-focused Header
+          // Minimalist App Bar
           SliverAppBar(
-            expandedHeight: 320,
+            expandedHeight: 260,
             floating: false,
             pinned: true,
-            backgroundColor: Theme.of(context).colorScheme.surface,
+            backgroundColor: Colors.transparent,
+            elevation: 0,
             flexibleSpace: FlexibleSpaceBar(
-              background: Stack(
-                children: [
-                  // Background Pattern
-                  Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          Theme.of(context).colorScheme.primary.withValues(alpha: 0.8),
-                          Theme.of(context).colorScheme.primaryContainer,
-                        ],
-                      ),
-                    ),
-                    child: CustomPaint(
-                      painter: _WavePatternPainter(
-                        color: Colors.white.withValues(alpha: 0.1),
-                      ),
-                      size: Size.infinite,
-                    ),
+              background: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Theme.of(context).colorScheme.primary.withValues(alpha: 0.95),
+                      Theme.of(context).colorScheme.primary.withValues(alpha: 0.85),
+                    ],
                   ),
-                  // Content
-                  SafeArea(
-                    child: Padding(
-                      padding: const EdgeInsets.all(20.0),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const SizedBox(height: 20),
-                          // Professional Avatar with Voice Wave
-                          Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              // Animated voice waves
-                              // Static voice wave rings
-                              ...List.generate(3, (index) {
-                                return Container(
-                                  width: 100 + (30 * (index + 1)),
-                                  height: 100 + (30 * (index + 1)),
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: Colors.white.withValues(
-                                        alpha: 0.1 - (index * 0.03)
-                                      ),
-                                      width: 1,
-                                    ),
+                ),
+                child: Stack(
+                  children: [
+                    // Subtle pattern overlay
+                    Positioned.fill(
+                      child: CustomPaint(
+                        painter: _MinimalPatternPainter(
+                          color: Colors.white.withValues(alpha: 0.05),
+                        ),
+                        size: Size.infinite,
+                      ),
+                    ),
+                    // Content
+                    SafeArea(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const SizedBox(height: 16),
+                            // Minimalist Avatar
+                            Container(
+                              width: 90,
+                              height: 90,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.white,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.1),
+                                    blurRadius: 16,
+                                    offset: const Offset(0, 4),
                                   ),
-                                );
-                              }),
-                              // Avatar
-                              Container(
-                                width: 100,
-                                height: 100,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      Theme.of(context).colorScheme.primary,
-                                      Theme.of(context).colorScheme.primaryContainer,
-                                    ],
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.3),
-                                      blurRadius: 20,
-                                      offset: const Offset(0, 8),
-                                    ),
-                                  ],
-                                ),
-                                child: const Center(
-                                  child: Icon(
-                                    Icons.mic,
-                                    size: 48,
-                                    color: Colors.white,
-                                  ),
+                                ],
+                              ),
+                              child: Center(
+                                child: Icon(
+                                  Icons.mic_rounded,
+                                  size: 42,
+                                  color: Theme.of(context).colorScheme.primary,
                                 ),
                               ),
-                            ],
-                          ),
-                          const SizedBox(height: 20),
-                          // User Display
-                          Column(
-                            children: [
-                              const Text(
-                                'Meeting Professional',
-                                style: TextStyle(
-                                  fontSize: 26,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
+                            ),
+                            const SizedBox(height: 20),
+                            // User Display
+                            const Text(
+                              'Meeting Professional',
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                                letterSpacing: -0.5,
                               ),
-                              const SizedBox(height: 4),
-                              Text(
+                            ),
+                            const SizedBox(height: 4),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: const Text(
                                 'Premium User',
                                 style: TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.white.withValues(alpha: 0.9),
+                                  fontSize: 14,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          // Meeting Stats Summary
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(30),
                             ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
+                            const SizedBox(height: 24),
+                            // Minimalist Stats
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                _buildMiniStat(
-                                  icon: Icons.mic,
+                                _buildMinimalStat(
                                   value: controller.totalMeetings.value.toString(),
-                                  label: 'Recorded',
+                                  label: 'Meetings',
                                 ),
                                 Container(
-                                  height: 20,
+                                  height: 30,
                                   width: 1,
-                                  color: Colors.white.withValues(alpha: 0.3),
-                                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                                  color: Colors.white.withValues(alpha: 0.2),
+                                  margin: const EdgeInsets.symmetric(horizontal: 24),
                                 ),
-                                _buildMiniStat(
-                                  icon: Icons.access_time,
+                                _buildMinimalStat(
                                   value: _formatTotalHours(controller.averageDuration.value * controller.totalMeetings.value),
-                                  label: 'Hours',
+                                  label: 'Total Time',
                                 ),
                                 Container(
-                                  height: 20,
+                                  height: 30,
                                   width: 1,
-                                  color: Colors.white.withValues(alpha: 0.3),
-                                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                                  color: Colors.white.withValues(alpha: 0.2),
+                                  margin: const EdgeInsets.symmetric(horizontal: 24),
                                 ),
-                                _buildMiniStat(
-                                  icon: Icons.insights,
-                                  value: '${controller.weeklyMeetings.value}',
+                                _buildMinimalStat(
+                                  value: controller.weeklyMeetings.value.toString(),
                                   label: 'This Week',
                                 ),
                               ],
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-              title: const Text('Meeting Profile'),
+              title: Text(
+                'Profile',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.9),
+                ),
+              ),
               centerTitle: true,
             ),
             actions: [
@@ -177,11 +151,17 @@ class ProfileView extends GetView<ProfileController> {
                 onPressed: () {
                   Get.snackbar(
                     'Settings',
-                    'Settings page coming soon',
+                    'Coming soon',
                     snackPosition: SnackPosition.BOTTOM,
+                    backgroundColor: Theme.of(context).colorScheme.surface,
+                    margin: const EdgeInsets.all(16),
+                    borderRadius: 12,
                   );
                 },
-                icon: const Icon(Icons.settings_outlined),
+                icon: Icon(
+                  Icons.settings_outlined,
+                  color: Colors.white.withValues(alpha: 0.9),
+                ),
                 tooltip: 'Settings',
               ),
             ],
@@ -198,115 +178,118 @@ class ProfileView extends GetView<ProfileController> {
 
               return Column(
                 children: [
-                    // Meeting Analytics Dashboard
+                    // Analytics Section
                     Padding(
-                      padding: const EdgeInsets.all(16.0),
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Meeting Analytics',
+                            'Analytics',
                             style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
                               color: Theme.of(context).colorScheme.onSurface,
+                              letterSpacing: -0.5,
                             ),
                           ),
                           const SizedBox(height: 16),
-                          // Analytics Cards Grid
+                          // Minimalist Analytics Cards
                           GridView.count(
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
                             crossAxisCount: 2,
                             mainAxisSpacing: 12,
                             crossAxisSpacing: 12,
-                            childAspectRatio: 1.5,
+                            childAspectRatio: 1.6,
                             children: [
-                              _buildAnalyticsCard(
+                              _buildMinimalAnalyticsCard(
                                 context,
-                                title: 'Total Recorded',
+                                title: 'Total Meetings',
                                 value: controller.totalMeetings.value.toString(),
-                                subtitle: 'meetings',
-                                icon: Icons.mic_none,
-                                color: Theme.of(context).colorScheme.primary,
-                                trend: '+12%',
+                                icon: Icons.videocam_rounded,
+                                gradient: [const Color(0xFF6366F1), const Color(0xFF8B5CF6)],
                               ),
-                              _buildAnalyticsCard(
+                              _buildMinimalAnalyticsCard(
                                 context,
                                 title: 'This Month',
                                 value: controller.monthlyMeetings.value.toString(),
-                                subtitle: 'meetings',
-                                icon: Icons.calendar_month,
-                                color: Colors.green,
-                                trend: '+8%',
+                                icon: Icons.calendar_today_rounded,
+                                gradient: [const Color(0xFF10B981), const Color(0xFF34D399)],
                               ),
-                              _buildAnalyticsCard(
+                              _buildMinimalAnalyticsCard(
                                 context,
                                 title: 'Total Hours',
                                 value: _formatTotalHours(controller.averageDuration.value * controller.totalMeetings.value),
-                                subtitle: 'recorded',
-                                icon: Icons.schedule,
-                                color: Colors.orange,
+                                icon: Icons.schedule_rounded,
+                                gradient: [const Color(0xFFF59E0B), const Color(0xFFFBBF24)],
                               ),
-                              _buildAnalyticsCard(
+                              _buildMinimalAnalyticsCard(
                                 context,
-                                title: 'Avg Length',
+                                title: 'Avg Duration',
                                 value: controller.formatDuration(controller.averageDuration.value),
-                                subtitle: 'per meeting',
-                                icon: Icons.timer_outlined,
-                                color: Colors.purple,
+                                icon: Icons.timer_rounded,
+                                gradient: [const Color(0xFFEC4899), const Color(0xFFF472B6)],
                               ),
                             ],
                           ),
-                          const SizedBox(height: 24),
-                          // Meeting Insights
+                          const SizedBox(height: 20),
+                          // Insights Card
                           Container(
-                            padding: const EdgeInsets.all(16),
+                            padding: const EdgeInsets.all(20),
                             decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
-                                  Theme.of(context).colorScheme.secondaryContainer.withValues(alpha: 0.2),
-                                ],
-                              ),
+                              color: Theme.of(context).colorScheme.surface,
                               borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.1),
+                                width: 1,
+                              ),
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Row(
                                   children: [
-                                    Icon(
-                                      Icons.lightbulb_outline,
-                                      color: Theme.of(context).colorScheme.primary,
+                                    Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Icon(
+                                        Icons.insights_rounded,
+                                        color: Theme.of(context).colorScheme.primary,
+                                        size: 20,
+                                      ),
                                     ),
-                                    const SizedBox(width: 8),
-                                    const Text(
-                                      'Meeting Insights',
+                                    const SizedBox(width: 12),
+                                    Text(
+                                      'Insights',
                                       style: TextStyle(
                                         fontSize: 16,
-                                        fontWeight: FontWeight.bold,
+                                        fontWeight: FontWeight.w600,
+                                        color: Theme.of(context).colorScheme.onSurface,
                                       ),
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 12),
-                                _buildInsightRow(
-                                  'Most productive day',
+                                const SizedBox(height: 16),
+                                _buildMinimalInsightRow(
+                                  'Most productive',
                                   'Thursday',
-                                  Icons.today,
+                                  context,
                                 ),
-                                const SizedBox(height: 8),
-                                _buildInsightRow(
-                                  'Average participants',
+                                const SizedBox(height: 12),
+                                _buildMinimalInsightRow(
+                                  'Avg participants',
                                   '4-5 people',
-                                  Icons.group,
+                                  context,
                                 ),
-                                const SizedBox(height: 8),
-                                _buildInsightRow(
-                                  'Peak meeting time',
-                                  '10:00 AM - 11:00 AM',
-                                  Icons.access_time,
+                                const SizedBox(height: 12),
+                                _buildMinimalInsightRow(
+                                  'Peak time',
+                                  '10:00 - 11:00 AM',
+                                  context,
                                 ),
                               ],
                             ),
@@ -315,98 +298,66 @@ class ProfileView extends GetView<ProfileController> {
                       ),
                     ),
 
-                    // Profile Sections
+                    // Settings Sections
                     Padding(
-                      padding: const EdgeInsets.all(16.0),
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
                       child: Form(
                         key: controller.formKey,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Recording Preferences Section
-                            _buildSectionTitle('Recording Preferences', Icons.settings_voice),
-                            const SizedBox(height: 12),
+                            // Recording Preferences
+                            Text(
+                              'Recording Preferences',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                color: Theme.of(context).colorScheme.onSurface,
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
                             Container(
                               decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.surface,
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.05),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
+                                color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                                borderRadius: BorderRadius.circular(12),
                               ),
                               child: Column(
                                 children: [
-                                  _buildPreferenceTile(
+                                  _buildMinimalSettingTile(
                                     context,
-                                    icon: Icons.mic_none,
-                                    iconColor: Colors.blue,
                                     title: 'Audio Quality',
-                                    subtitle: 'Recording quality settings',
-                                    trailing: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                      decoration: BoxDecoration(
-                                        color: Colors.blue.withValues(alpha: 0.1),
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      child: const Text(
-                                        'High Quality',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.blue,
-                                        ),
-                                      ),
-                                    ),
+                                    value: 'High Quality',
+                                    onTap: () {},
                                   ),
-                                  const Divider(height: 1),
-                                  _buildPreferenceTile(
+                                  Container(
+                                    height: 0.5,
+                                    margin: const EdgeInsets.symmetric(horizontal: 16),
+                                    color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
+                                  ),
+                                  _buildMinimalSettingTile(
                                     context,
-                                    icon: Icons.language,
-                                    iconColor: Colors.green,
-                                    title: 'Transcription Language',
-                                    subtitle: 'Primary language for meetings',
-                                    trailing: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                      decoration: BoxDecoration(
-                                        color: Colors.green.withValues(alpha: 0.1),
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      child: const Text(
-                                        '中文',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.green,
-                                        ),
-                                      ),
-                                    ),
+                                    title: 'Language',
+                                    value: '中文',
+                                    onTap: () {},
                                   ),
-                                  const Divider(height: 1),
-                                  Obx(() => SwitchListTile(
-                                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                    secondary: Container(
-                                      padding: const EdgeInsets.all(8),
-                                      decoration: BoxDecoration(
-                                        color: Colors.orange.withValues(alpha: 0.1),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: const Icon(
-                                        Icons.cloud_upload_outlined,
-                                        color: Colors.orange,
-                                      ),
-                                    ),
-                                    title: const Text('Auto Cloud Backup'),
-                                    subtitle: const Text('Automatically backup recordings'),
+                                  Container(
+                                    height: 0.5,
+                                    margin: const EdgeInsets.symmetric(horizontal: 16),
+                                    color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
+                                  ),
+                                  Obx(() => _buildMinimalSwitchTile(
+                                    context,
+                                    title: 'Auto Backup',
                                     value: true,
                                     onChanged: controller.isEditing.value ? null : (value) {
                                       Get.snackbar(
                                         'Cloud Backup',
-                                        'Feature coming soon',
+                                        'Coming soon',
                                         snackPosition: SnackPosition.BOTTOM,
+                                        backgroundColor: Theme.of(context).colorScheme.surface,
+                                        margin: const EdgeInsets.all(16),
+                                        borderRadius: 12,
                                       );
                                     },
                                   )),
@@ -415,99 +366,61 @@ class ProfileView extends GetView<ProfileController> {
                             ),
                             const SizedBox(height: 24),
 
-                            // AI Assistant Settings
-                            _buildSectionTitle('AI Assistant Settings', Icons.auto_awesome),
-                            const SizedBox(height: 12),
+                            // AI Settings
+                            Text(
+                              'AI Assistant',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                color: Theme.of(context).colorScheme.onSurface,
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
                             Container(
                               decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.surface,
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.05),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
+                                color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                                borderRadius: BorderRadius.circular(12),
                               ),
                               child: Column(
                                 children: [
-                                  ListTile(
-                                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                    leading: Container(
-                                      padding: const EdgeInsets.all(8),
-                                      decoration: BoxDecoration(
-                                        color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Icon(
-                                        Icons.timer_outlined,
-                                        color: Theme.of(context).colorScheme.primary,
-                                      ),
-                                    ),
-                                    title: const Text('Meeting Duration'),
-                                    subtitle: const Text('Default length for new meetings'),
-                                    trailing: Obx(() => Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                      decoration: BoxDecoration(
-                                        color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      child: DropdownButton<int>(
-                                        value: controller.profileData['meetingPreferences']?['defaultDuration'] ?? 30,
-                                        underline: const SizedBox(),
-                                        isDense: true,
-                                        items: const [
-                                          DropdownMenuItem(value: 15, child: Text('15 min')),
-                                          DropdownMenuItem(value: 30, child: Text('30 min')),
-                                          DropdownMenuItem(value: 45, child: Text('45 min')),
-                                          DropdownMenuItem(value: 60, child: Text('1 hour')),
-                                        ],
-                                        onChanged: controller.isEditing.value ? null : (value) {
-                                          if (value != null) {
-                                            controller.updatePreference('defaultDuration', value);
-                                          }
-                                        },
-                                      ),
-                                    )),
+                                  Obx(() => _buildMinimalDropdownTile<int>(
+                                    context,
+                                    title: 'Default Duration',
+                                    value: controller.profileData['meetingPreferences']?['defaultDuration'] ?? 30,
+                                    items: const [
+                                      DropdownMenuItem(value: 15, child: Text('15 min')),
+                                      DropdownMenuItem(value: 30, child: Text('30 min')),
+                                      DropdownMenuItem(value: 45, child: Text('45 min')),
+                                      DropdownMenuItem(value: 60, child: Text('1 hour')),
+                                    ],
+                                    onChanged: controller.isEditing.value ? null : (value) {
+                                      if (value != null) {
+                                        controller.updatePreference('defaultDuration', value);
+                                      }
+                                    },
+                                  )),
+                                  Container(
+                                    height: 0.5,
+                                    margin: const EdgeInsets.symmetric(horizontal: 16),
+                                    color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
                                   ),
-                                  const Divider(height: 1),
-                                  Obx(() => SwitchListTile(
-                                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                    secondary: Container(
-                                      padding: const EdgeInsets.all(8),
-                                      decoration: BoxDecoration(
-                                        color: Colors.blue.withValues(alpha: 0.1),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: const Icon(
-                                        Icons.transcribe_outlined,
-                                        color: Colors.blue,
-                                      ),
-                                    ),
-                                    title: const Text('Smart Transcription'),
-                                    subtitle: const Text('AI-powered speech recognition'),
+                                  Obx(() => _buildMinimalSwitchTile(
+                                    context,
+                                    title: 'Smart Transcription',
                                     value: controller.profileData['meetingPreferences']?['autoTranscribe'] ?? true,
                                     onChanged: controller.isEditing.value ? null : (value) {
                                       controller.updatePreference('autoTranscribe', value);
                                     },
                                   )),
-                                  const Divider(height: 1),
-                                  Obx(() => SwitchListTile(
-                                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                    secondary: Container(
-                                      padding: const EdgeInsets.all(8),
-                                      decoration: BoxDecoration(
-                                        color: Colors.green.withValues(alpha: 0.1),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: const Icon(
-                                        Icons.summarize_outlined,
-                                        color: Colors.green,
-                                      ),
-                                    ),
-                                    title: const Text('Intelligent Summary'),
-                                    subtitle: const Text('Generate key insights and action items'),
+                                  Container(
+                                    height: 0.5,
+                                    margin: const EdgeInsets.symmetric(horizontal: 16),
+                                    color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
+                                  ),
+                                  Obx(() => _buildMinimalSwitchTile(
+                                    context,
+                                    title: 'Auto Summary',
                                     value: controller.profileData['meetingPreferences']?['autoSummarize'] ?? true,
                                     onChanged: controller.isEditing.value ? null : (value) {
                                       controller.updatePreference('autoSummarize', value);
@@ -518,80 +431,62 @@ class ProfileView extends GetView<ProfileController> {
                             ),
                             const SizedBox(height: 24),
                             
-                            // Premium Features
+                            // Premium Card
                             Container(
                               padding: const EdgeInsets.all(20),
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
                                   colors: [
-                                    Colors.amber.shade700,
-                                    Colors.orange.shade700,
+                                    Theme.of(context).colorScheme.primary,
+                                    Theme.of(context).colorScheme.primary.withValues(alpha: 0.8),
                                   ],
                                 ),
                                 borderRadius: BorderRadius.circular(16),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.orange.withValues(alpha: 0.3),
-                                    blurRadius: 20,
-                                    offset: const Offset(0, 8),
-                                  ),
-                                ],
                               ),
-                              child: Column(
+                              child: Row(
                                 children: [
-                                  Row(
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.all(8),
-                                        decoration: BoxDecoration(
-                                          color: Colors.white.withValues(alpha: 0.2),
-                                          borderRadius: BorderRadius.circular(8),
-                                        ),
-                                        child: const Icon(
-                                          Icons.workspace_premium,
-                                          color: Colors.white,
-                                          size: 24,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      const Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              'Upgrade to Pro',
-                                              style: TextStyle(
-                                                fontSize: 18,
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                            Text(
-                                              'Unlock advanced features',
-                                              style: TextStyle(
-                                                fontSize: 14,
-                                                color: Colors.white70,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      Icon(
-                                        Icons.arrow_forward_ios,
-                                        color: Colors.white.withValues(alpha: 0.7),
-                                        size: 16,
-                                      ),
-                                    ],
+                                  Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(alpha: 0.2),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: const Icon(
+                                      Icons.star_rounded,
+                                      color: Colors.white,
+                                      size: 24,
+                                    ),
                                   ),
-                                  const SizedBox(height: 16),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                                    children: [
-                                      _buildProFeature(Icons.all_inclusive, 'Unlimited'),
-                                      _buildProFeature(Icons.speed, 'Fast AI'),
-                                      _buildProFeature(Icons.cloud_done, 'Cloud Sync'),
-                                      _buildProFeature(Icons.support_agent, 'Priority'),
-                                    ],
+                                  const SizedBox(width: 16),
+                                  const Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Upgrade to Pro',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                        SizedBox(height: 2),
+                                        Text(
+                                          'Unlock unlimited features',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: Colors.white70,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Icon(
+                                    Icons.arrow_forward_rounded,
+                                    color: Colors.white.withValues(alpha: 0.8),
+                                    size: 20,
                                   ),
                                 ],
                               ),
@@ -603,56 +498,54 @@ class ProfileView extends GetView<ProfileController> {
                             Row(
                               children: [
                                 Expanded(
-                                  child: OutlinedButton.icon(
+                                  child: OutlinedButton(
                                     onPressed: () {
                                       _showDataManagementDialog(context);
                                     },
                                     style: OutlinedButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(vertical: 16),
+                                      padding: const EdgeInsets.symmetric(vertical: 14),
                                       side: BorderSide(
-                                        color: Theme.of(context).colorScheme.primary,
+                                        color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
                                       ),
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(12),
                                       ),
                                     ),
-                                    icon: const Icon(Icons.folder_outlined),
-                                    label: const Text('Manage Data'),
+                                    child: const Text('Manage Data'),
                                   ),
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
-                                  child: OutlinedButton.icon(
+                                  child: OutlinedButton(
                                     onPressed: controller.logout,
                                     style: OutlinedButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(vertical: 16),
-                                      side: const BorderSide(
-                                        color: Colors.red,
+                                      padding: const EdgeInsets.symmetric(vertical: 14),
+                                      side: BorderSide(
+                                        color: Colors.red.withValues(alpha: 0.5),
                                       ),
                                       foregroundColor: Colors.red,
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(12),
                                       ),
                                     ),
-                                    icon: const Icon(Icons.logout),
-                                    label: const Text('Sign Out'),
+                                    child: const Text('Sign Out'),
                                   ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 20),
                             
-                            // App Version
+                            // App Info
                             Center(
                               child: Text(
                                 'Version 1.0.0',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 32),
+                            const SizedBox(height: 40),
                           ],
                         ),
                       ),
@@ -667,227 +560,236 @@ class ProfileView extends GetView<ProfileController> {
   }
 
 
-  // Section title widget
-  Widget _buildSectionTitle(String title, IconData icon) {
-    return Row(
-      children: [
-        Icon(
-          icon,
-          size: 20,
-          color: Get.theme.colorScheme.primary,
-        ),
-        const SizedBox(width: 8),
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ],
-    );
-  }
-
-
-  // Mini stat widget for header
-  Widget _buildMiniStat({
-    required IconData icon,
+  // Minimal stat widget for header
+  Widget _buildMinimalStat({
     required String value,
     required String label,
   }) {
-    return Row(
+    return Column(
       children: [
-        Icon(
-          icon,
-          size: 16,
-          color: Colors.white.withValues(alpha: 0.8),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
         ),
-        const SizedBox(width: 4),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              value,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                color: Colors.white.withValues(alpha: 0.7),
-              ),
-            ),
-          ],
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.white.withValues(alpha: 0.7),
+          ),
         ),
       ],
     );
   }
 
-  // Analytics card widget
-  Widget _buildAnalyticsCard(
+
+  // Minimal analytics card
+  Widget _buildMinimalAnalyticsCard(
     BuildContext context, {
     required String title,
     required String value,
-    required String subtitle,
     required IconData icon,
-    required Color color,
-    String? trend,
+    required List<Color> gradient,
   }) {
     return Container(
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: gradient.map((c) => c.withValues(alpha: 0.9)).toList(),
+        ),
+        borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
+            color: gradient.first.withValues(alpha: 0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {},
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Icon(
                   icon,
-                  color: color,
-                  size: 20,
+                  color: Colors.white,
+                  size: 24,
                 ),
-              ),
-              if (trend != null)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: Colors.green.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    trend,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.green,
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      value,
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
                     ),
-                  ),
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.white.withValues(alpha: 0.8),
+                      ),
+                    ),
+                  ],
                 ),
-            ],
+              ],
+            ),
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.onSurface,
-                ),
-              ),
-              Text(
-                subtitle,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }
 
-  // Insight row widget
-  Widget _buildInsightRow(String label, String value, IconData icon) {
+  // Minimal insight row
+  Widget _buildMinimalInsightRow(
+    String label,
+    String value,
+    BuildContext context,
+  ) {
     return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Icon(
-          icon,
-          size: 16,
-          color: Get.theme.colorScheme.primary.withValues(alpha: 0.7),
-        ),
-        const SizedBox(width: 8),
         Text(
           label,
           style: TextStyle(
             fontSize: 14,
-            color: Get.theme.colorScheme.onSurfaceVariant,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
-        const Spacer(),
         Text(
           value,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
       ],
     );
   }
 
-  // Preference tile widget
-  Widget _buildPreferenceTile(
+  // Minimal setting tile
+  Widget _buildMinimalSettingTile(
     BuildContext context, {
-    required IconData icon,
-    required Color iconColor,
     required String title,
-    required String subtitle,
-    required Widget trailing,
+    required String value,
+    required VoidCallback onTap,
   }) {
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      leading: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: iconColor.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Icon(
-          icon,
-          color: iconColor,
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 15,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+            ),
+            Row(
+              children: [
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Icon(
+                  Icons.chevron_right,
+                  size: 20,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
-      title: Text(title),
-      subtitle: Text(subtitle),
-      trailing: trailing,
     );
   }
 
-  // Pro feature widget
-  Widget _buildProFeature(IconData icon, String label) {
-    return Column(
-      children: [
-        Icon(
-          icon,
-          color: Colors.white,
-          size: 20,
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 11,
-            color: Colors.white70,
-            fontWeight: FontWeight.w500,
+  // Minimal switch tile
+  Widget _buildMinimalSwitchTile(
+    BuildContext context, {
+    required String title,
+    required bool value,
+    required Function(bool)? onChanged,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 15,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
           ),
-        ),
-      ],
+          Switch.adaptive(
+            value: value,
+            onChanged: onChanged,
+            activeColor: Theme.of(context).colorScheme.primary,
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Minimal dropdown tile
+  Widget _buildMinimalDropdownTile<T>(
+    BuildContext context, {
+    required String title,
+    required T value,
+    required List<DropdownMenuItem<T>> items,
+    required Function(T?)? onChanged,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 15,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+          ),
+          DropdownButton<T>(
+            value: value,
+            underline: const SizedBox(),
+            isDense: true,
+            style: TextStyle(
+              fontSize: 14,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+            items: items,
+            onChanged: onChanged,
+          ),
+        ],
+      ),
     );
   }
 
@@ -904,79 +806,182 @@ class ProfileView extends GetView<ProfileController> {
   // Show data management dialog
   void _showDataManagementDialog(BuildContext context) {
     Get.dialog(
-      AlertDialog(
-        title: const Text('Data Management'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.download_outlined),
-              title: const Text('Export All Data'),
-              subtitle: const Text('Download your meetings and summaries'),
-              onTap: () {
-                Get.back();
-                Get.snackbar(
-                  'Export',
-                  'Export feature coming soon',
-                  snackPosition: SnackPosition.BOTTOM,
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.backup_outlined),
-              title: const Text('Backup to Cloud'),
-              subtitle: const Text('Save your data to cloud storage'),
-              onTap: () {
-                Get.back();
-                Get.snackbar(
-                  'Backup',
-                  'Cloud backup coming soon',
-                  snackPosition: SnackPosition.BOTTOM,
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.delete_outline, color: Colors.red),
-              title: const Text('Clear All Data'),
-              subtitle: const Text('Remove all meetings and recordings'),
-              onTap: () {
-                Get.back();
-                Get.dialog(
-                  AlertDialog(
-                    title: const Text('Clear All Data?'),
-                    content: const Text('This action cannot be undone.'),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Get.back(),
-                        child: const Text('Cancel'),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          Get.back();
-                          Get.snackbar(
-                            'Data Cleared',
-                            'All data has been removed',
-                            snackPosition: SnackPosition.BOTTOM,
-                            backgroundColor: Colors.red,
-                            colorText: Colors.white,
-                          );
-                        },
-                        child: const Text(
-                          'Clear',
-                          style: TextStyle(color: Colors.red),
-                        ),
-                      ),
-                    ],
+      Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Data Management',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 24),
+              _buildDataOption(
+                context,
+                icon: Icons.download_rounded,
+                title: 'Export Data',
+                subtitle: 'Download all meetings',
+                onTap: () {
+                  Get.back();
+                  Get.snackbar(
+                    'Export',
+                    'Coming soon',
+                    snackPosition: SnackPosition.BOTTOM,
+                    backgroundColor: Theme.of(context).colorScheme.surface,
+                    margin: const EdgeInsets.all(16),
+                    borderRadius: 12,
+                  );
+                },
+              ),
+              const SizedBox(height: 16),
+              _buildDataOption(
+                context,
+                icon: Icons.cloud_upload_rounded,
+                title: 'Cloud Backup',
+                subtitle: 'Save to cloud storage',
+                onTap: () {
+                  Get.back();
+                  Get.snackbar(
+                    'Backup',
+                    'Coming soon',
+                    snackPosition: SnackPosition.BOTTOM,
+                    backgroundColor: Theme.of(context).colorScheme.surface,
+                    margin: const EdgeInsets.all(16),
+                    borderRadius: 12,
+                  );
+                },
+              ),
+              const SizedBox(height: 16),
+              _buildDataOption(
+                context,
+                icon: Icons.delete_rounded,
+                title: 'Clear Data',
+                subtitle: 'Remove all recordings',
+                color: Colors.red,
+                onTap: () {
+                  Get.back();
+                  _confirmClearData(context);
+                },
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  onPressed: () => Get.back(),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
-                );
-              },
+                  child: const Text('Close'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDataOption(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+    Color? color,
+  }) {
+    final effectiveColor = color ?? Theme.of(context).colorScheme.primary;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: effectiveColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                icon,
+                color: effectiveColor,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.chevron_right,
+              color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+              size: 20,
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _confirmClearData(BuildContext context) {
+    Get.dialog(
+      AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: const Text('Clear All Data?'),
+        content: const Text('This action cannot be undone. All your meetings and recordings will be permanently deleted.'),
         actions: [
           TextButton(
             onPressed: () => Get.back(),
-            child: const Text('Close'),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Get.back();
+              Get.snackbar(
+                'Data Cleared',
+                'All data has been removed',
+                snackPosition: SnackPosition.BOTTOM,
+                backgroundColor: Colors.red,
+                colorText: Colors.white,
+                margin: const EdgeInsets.all(16),
+                borderRadius: 12,
+              );
+            },
+            child: const Text(
+              'Clear',
+              style: TextStyle(color: Colors.red),
+            ),
           ),
         ],
       ),
@@ -984,34 +989,25 @@ class ProfileView extends GetView<ProfileController> {
   }
 }
 
-// Wave pattern painter for background
-class _WavePatternPainter extends CustomPainter {
+// Minimal pattern painter
+class _MinimalPatternPainter extends CustomPainter {
   final Color color;
 
-  _WavePatternPainter({required this.color});
+  _MinimalPatternPainter({required this.color});
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
+      ..style = PaintingStyle.fill;
 
-    final path = Path();
-    
-    for (int i = 0; i < 3; i++) {
-      final waveHeight = 20.0 + (i * 10);
-      final yOffset = 50.0 + (i * 40);
-      
-      path.moveTo(0, yOffset);
-      
-      for (double x = 0; x <= size.width; x += 10) {
-        final y = yOffset + math.sin((x / size.width) * 2 * math.pi) * waveHeight;
-        path.lineTo(x, y);
+    // Draw subtle dots pattern
+    const double spacing = 30;
+    for (double x = 0; x < size.width; x += spacing) {
+      for (double y = 0; y < size.height; y += spacing) {
+        canvas.drawCircle(Offset(x, y), 1, paint);
       }
     }
-    
-    canvas.drawPath(path, paint);
   }
 
   @override
