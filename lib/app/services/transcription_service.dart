@@ -1,10 +1,14 @@
 import 'dart:typed_data';
+import 'dart:io';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:get/get.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as path;
 import 'whisperx_service.dart';
 import 'openai_service.dart';
+import 'volcano_engine/volcano_transcription_service.dart';
 
-enum TranscriptionProvider { whisperx, openai }
+enum TranscriptionProvider { whisperx, openai, volcano }
 
 class TranscriptionResult {
   final String text;
@@ -22,7 +26,7 @@ class TranscriptionResult {
 
 class TranscriptionService {
   /// Transcribe audio using the best available service
-  /// Tries WhisperX first, falls back to OpenAI if unavailable
+  /// Priority: Volcano -> WhisperX -> OpenAI
   static Future<TranscriptionResult> transcribeAudio({
     required Uint8List audioData,
     String? language = 'zh',
@@ -35,10 +39,24 @@ class TranscriptionService {
           return _transcribeWithWhisperX(audioData, language);
         case TranscriptionProvider.openai:
           return _transcribeWithOpenAI(audioData, language);
+        case TranscriptionProvider.volcano:
+          return _transcribeWithVolcano(audioData, language);
       }
     }
 
-    // Auto-selection: try WhisperX first, fallback to OpenAI
+    // Auto-selection: try Volcano first, then WhisperX, finally OpenAI
+    // Try Volcano Engine first
+    try {
+      if (await _isVolcanoAvailable()) {
+        return await _transcribeWithVolcano(audioData, language);
+      }
+    } catch (e) {
+      if (Get.isLogEnable) {
+        Get.log('Volcano failed: $e');
+      }
+    }
+    
+    // Try WhisperX
     try {
       return await _transcribeWithWhisperX(audioData, language);
     } catch (e) {
@@ -96,6 +114,44 @@ class TranscriptionService {
       provider: TranscriptionProvider.openai,
     );
   }
+  
+  static Future<bool> _isVolcanoAvailable() async {
+    final service = VolcanoTranscriptionService();
+    return await service.isAvailable();
+  }
+  
+  static Future<TranscriptionResult> _transcribeWithVolcano(
+    Uint8List audioData,
+    String? language,
+  ) async {
+    final service = VolcanoTranscriptionService();
+    
+    // 创建临时文件
+    final tempDir = await getTemporaryDirectory();
+    final tempFile = File(path.join(tempDir.path, 'temp_audio_${DateTime.now().millisecondsSinceEpoch}.m4a'));
+    await tempFile.writeAsBytes(audioData);
+    
+    try {
+      final result = await service.transcribe(tempFile);
+      
+      // 转换为兼容格式
+      return TranscriptionResult(
+        text: result.text,
+        segments: result.segments?.map((s) => WhisperXSegment(
+          start: s.startTime,
+          end: s.endTime,
+          text: s.text,
+        )).toList(),
+        detectedLanguage: result.language,
+        provider: TranscriptionProvider.volcano,
+      );
+    } finally {
+      // 清理临时文件
+      if (await tempFile.exists()) {
+        await tempFile.delete();
+      }
+    }
+  }
 
   /// Simple transcription method that returns just the text
   static Future<String> transcribeAudioSimple({
@@ -112,18 +168,22 @@ class TranscriptionService {
   }
 
   /// Check which transcription services are available
-  static Map<String, bool> getAvailableServices() {
+  static Future<Map<String, bool>> getAvailableServices() async {
+    final volcanoService = VolcanoTranscriptionService();
     return {
+      'volcano': await volcanoService.isAvailable(),
       'whisperx': dotenv.env['REPLICATE_API_KEY']?.isNotEmpty == true,
       'openai': dotenv.env['OPENAI_API_KEY']?.isNotEmpty == true,
     };
   }
 
   /// Get the preferred transcription provider based on available configuration
-  static TranscriptionProvider? getPreferredProvider() {
-    final services = getAvailableServices();
+  static Future<TranscriptionProvider?> getPreferredProvider() async {
+    final services = await getAvailableServices();
     
-    if (services['whisperx'] == true) {
+    if (services['volcano'] == true) {
+      return TranscriptionProvider.volcano;
+    } else if (services['whisperx'] == true) {
       return TranscriptionProvider.whisperx;
     } else if (services['openai'] == true) {
       return TranscriptionProvider.openai;

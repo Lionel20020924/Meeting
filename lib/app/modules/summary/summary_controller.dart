@@ -215,7 +215,7 @@ class SummaryController extends GetxController {
       final audioData = await audioFile.readAsBytes();
       
       // Check if any transcription service is available
-      final availableServices = TranscriptionService.getAvailableServices();
+      final availableServices = await TranscriptionService.getAvailableServices();
       if (!availableServices.values.any((available) => available)) {
         throw Exception('No transcription service configured (need REPLICATE_API_KEY or OPENAI_API_KEY)');
       }
