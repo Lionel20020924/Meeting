@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
-import 'package:http_parser/http_parser.dart';
 
 class WhisperXSegment {
   final double start;
@@ -61,8 +60,7 @@ class WhisperXResult {
 
 class WhisperXService {
   static const String _baseUrl = 'https://api.replicate.com/v1';
-  static const String _modelOwner = 'victor-upmeet';
-  static const String _modelName = 'whisperx';
+  static const String _modelVersion = '2ee68234275d2b49c7c71c3091eb29c4c5e0b825b4ce96bc56decc40bad4ab38';
   
   static String get _apiKey => dotenv.env['REPLICATE_API_KEY'] ?? '';
   
@@ -85,9 +83,12 @@ class WhisperXService {
     bool debug = false,
   }) async {
     try {
-      // Step 1: Create prediction with file upload
+      // Step 1: First upload audio to a temporary service or use base64
+      final audioUrl = await _uploadAudioToTempStorage(audioData);
+      
+      // Step 2: Create prediction with JSON body
       final prediction = await _createPrediction(
-        audioData: audioData,
+        audioUrl: audioUrl,
         language: language,
         diarization: diarization,
         huggingfaceAccessToken: huggingfaceAccessToken,
@@ -101,7 +102,7 @@ class WhisperXService {
 
       final predictionId = prediction['id'] as String;
 
-      // Step 2: Poll for completion
+      // Step 3: Poll for completion
       final result = await _pollPredictionStatus(predictionId);
 
       if (result['status'] == 'succeeded') {
@@ -122,9 +123,44 @@ class WhisperXService {
     }
   }
 
+  /// Upload audio to temporary storage (using file.io or similar service)
+  static Future<String> _uploadAudioToTempStorage(Uint8List audioData) async {
+    try {
+      // Use file.io for temporary storage (expires after 14 days)
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse('https://file.io'),
+      );
+      
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          'file',
+          audioData,
+          filename: 'audio_${DateTime.now().millisecondsSinceEpoch}.wav',
+        ),
+      );
+      
+      final response = await request.send();
+      final responseBody = await response.stream.bytesToString();
+      
+      if (response.statusCode == 200) {
+        final json = jsonDecode(responseBody);
+        if (json['success'] == true && json['link'] != null) {
+          return json['link'];
+        }
+      }
+      
+      throw Exception('Failed to upload audio to temporary storage');
+    } catch (e) {
+      // Fallback: use data URL
+      final base64Audio = base64Encode(audioData);
+      return 'data:audio/wav;base64,$base64Audio';
+    }
+  }
+
   /// Create a prediction on Replicate
   static Future<Map<String, dynamic>> _createPrediction({
-    required Uint8List audioData,
+    required String audioUrl,
     String? language,
     bool diarization = false,
     String? huggingfaceAccessToken,
@@ -135,55 +171,48 @@ class WhisperXService {
     int? maxSpeakers,
     bool debug = false,
   }) async {
-    // Create multipart request for file upload
-    final request = http.MultipartRequest(
-      'POST',
-      Uri.parse('$_baseUrl/predictions'),
-    );
-
-    request.headers['Authorization'] = 'Token $_apiKey';
-
-    // Add the audio file
-    request.files.add(
-      http.MultipartFile.fromBytes(
-        'input[audio_file]',
-        audioData,
-        filename: 'audio.wav',
-        contentType: MediaType('audio', 'wav'),
-      ),
-    );
-
-    // Add other input parameters as form fields
-    request.fields['version'] = '$_modelOwner/$_modelName';
-    request.fields['input[align_output]'] = alignOutput.toString();
-    request.fields['input[batch_size]'] = batchSize.toString();
-    request.fields['input[temperature]'] = temperature.toString();
-    request.fields['input[debug]'] = debug.toString();
-
-    if (language != null) {
-      request.fields['input[language]'] = language;
+    // Build input parameters
+    final input = <String, dynamic>{
+      'audio_file': audioUrl,
+      'align_output': alignOutput,
+      'batch_size': batchSize,
+      'temperature': temperature,
+      'debug': debug,
+    };
+    
+    if (language != null && language.isNotEmpty) {
+      input['language'] = language;
     }
-
+    
     if (diarization) {
-      request.fields['input[diarization]'] = 'true';
-      if (huggingfaceAccessToken != null) {
-        request.fields['input[huggingface_access_token]'] = huggingfaceAccessToken;
+      input['diarization'] = true;
+      if (huggingfaceAccessToken != null && huggingfaceAccessToken.isNotEmpty) {
+        input['huggingface_access_token'] = huggingfaceAccessToken;
       }
       if (minSpeakers != null) {
-        request.fields['input[min_speakers]'] = minSpeakers.toString();
+        input['min_speakers'] = minSpeakers;
       }
       if (maxSpeakers != null) {
-        request.fields['input[max_speakers]'] = maxSpeakers.toString();
+        input['max_speakers'] = maxSpeakers;
       }
     }
-
-    final response = await request.send();
-    final responseBody = await response.stream.bytesToString();
+    
+    // Create request body
+    final requestBody = {
+      'version': _modelVersion,
+      'input': input,
+    };
+    
+    final response = await http.post(
+      Uri.parse('$_baseUrl/predictions'),
+      headers: _headers,
+      body: jsonEncode(requestBody),
+    );
 
     if (response.statusCode == 201) {
-      return jsonDecode(responseBody);
+      return jsonDecode(response.body);
     } else {
-      throw Exception('Failed to create prediction: ${response.statusCode} - $responseBody');
+      throw Exception('Failed to create prediction: ${response.statusCode} - ${response.body}');
     }
   }
 

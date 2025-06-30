@@ -1,35 +1,31 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as path;
-import 'tos_service.dart';
+import '../audio_upload_service.dart';
 import 'asr_service.dart';
+import '../doubao_ai_service.dart';
 import 'package:get/get.dart';
 
 /// 转录结果类
 class VolcanoTranscriptionResult {
   final String text;
-  final List<VolcanoTranscriptionSegment>? segments;
   final String? language;
-  final double? confidence;
-  final Map<String, dynamic>? metadata;
+  final List<VolcanoTranscriptionSegment>? segments;
+  final MeetingSummary? summary;
 
   VolcanoTranscriptionResult({
     required this.text,
-    this.segments,
     this.language,
-    this.confidence,
-    this.metadata,
+    this.segments,
+    this.summary,
   });
 }
 
-/// 转录片段类
+/// 转录片段
 class VolcanoTranscriptionSegment {
   final String text;
   final double startTime;
   final double endTime;
-  final int? speakerId;
+  final String? speakerId;
   final double? confidence;
 
   VolcanoTranscriptionSegment({
@@ -43,18 +39,12 @@ class VolcanoTranscriptionSegment {
 
 /// 火山引擎转录服务实现
 class VolcanoTranscriptionService {
-  late final TOSService _tosService;
+  late final AudioUploadService _uploadService;
   late final VolcanoASRService _asrService;
   
   VolcanoTranscriptionService() {
     // 初始化服务
-    _tosService = TOSService(
-      accessKeyId: dotenv.env['TOS_ACCESS_KEY_ID'] ?? '',
-      secretAccessKey: dotenv.env['TOS_SECRET_ACCESS_KEY'] ?? '',
-      endpoint: dotenv.env['TOS_ENDPOINT'] ?? 'tos-s3-cn-beijing.volces.com',
-      bucketName: dotenv.env['TOS_BUCKET_NAME'] ?? '',
-      region: dotenv.env['TOS_REGION'] ?? 'cn-beijing',
-    );
+    _uploadService = AudioUploadService();
     
     _asrService = VolcanoASRService(
       appKey: dotenv.env['VOLCANO_APP_KEY'] ?? '',
@@ -62,54 +52,107 @@ class VolcanoTranscriptionService {
     );
   }
 
-  String get serviceName => 'Volcano Engine ASR';
+  String get serviceName => 'Volcano Engine ASR (BigModel)';
 
   Future<bool> isAvailable() async {
     // 检查必要的配置是否存在
     return dotenv.env['VOLCANO_APP_KEY']?.isNotEmpty == true &&
            dotenv.env['VOLCANO_ACCESS_KEY']?.isNotEmpty == true &&
            dotenv.env['TOS_ACCESS_KEY_ID']?.isNotEmpty == true &&
-           dotenv.env['TOS_SECRET_ACCESS_KEY']?.isNotEmpty == true &&
-           dotenv.env['TOS_BUCKET_NAME']?.isNotEmpty == true;
+           dotenv.env['TOS_SECRET_ACCESS_KEY']?.isNotEmpty == true;
   }
 
-  Future<VolcanoTranscriptionResult> transcribe(File audioFile) async {
+  /// 执行音频转录
+  Future<VolcanoTranscriptionResult> transcribe(
+    File audioFile, {
+    bool generateSummary = true,
+    String? meetingTitle,
+    DateTime? meetingDate,
+  }) async {
     try {
       // 1. 上传音频文件到 TOS
       if (Get.isLogEnable) {
         Get.log('Uploading audio file to TOS...');
       }
-      final audioUrl = await _tosService.uploadFile(audioFile);
+      
+      final audioUrl = await _uploadService.uploadAudioFile(audioFile);
+      
       if (Get.isLogEnable) {
-        Get.log('Audio uploaded successfully: $audioUrl');
+        Get.log('Audio uploaded successfully. Starting ASR...');
       }
       
-      // 2. 创建 ASR 任务
-      if (Get.isLogEnable) {
-        Get.log('Creating ASR task...');
-      }
-      final taskId = await _asrService.createASRTask(
+      // 2. 提交 ASR 任务
+      final taskId = await _asrService.submitASRTask(
         audioUrl: audioUrl,
         language: 'zh-CN',
+        enableDiarization: true,
+        enableIntelligentSegment: true,
         enablePunctuation: true,
         enableTimestamp: true,
-        audioFormat: _getAudioFormat(audioFile.path),
       );
+      
       if (Get.isLogEnable) {
-        Get.log('ASR task created: $taskId');
+        Get.log('ASR task submitted: $taskId');
       }
       
       // 3. 等待并获取结果
-      if (Get.isLogEnable) {
-        Get.log('Waiting for ASR result...');
-      }
-      final asrResult = await _asrService.waitForResult(taskId);
+      final asrResult = await _asrService.waitForResult(
+        taskId,
+        timeout: const Duration(minutes: 10),
+      );
+      
       if (Get.isLogEnable) {
         Get.log('ASR completed successfully');
       }
       
-      // 4. 转换为统一格式
-      return _convertToTranscriptionResult(asrResult);
+      // 4. 转换结果格式
+      final segments = _convertSegments(asrResult.segments);
+      final fullText = segments.map((s) => s.text).join(' ');
+      
+      // 5. 生成会议摘要（如果需要）
+      MeetingSummary? summary;
+      if (generateSummary && dotenv.env['ARK_API_KEY']?.isNotEmpty == true) {
+        try {
+          if (Get.isLogEnable) {
+            Get.log('Generating meeting summary with Doubao AI...');
+          }
+          
+          summary = await DoubaoAIService.generateMeetingSummary(
+            transcriptText: fullText,
+            segments: segments.map((s) => TranscriptSegment(
+              text: s.text,
+              speakerId: s.speakerId,
+              startTime: s.startTime,
+              endTime: s.endTime,
+            )).toList(),
+            meetingTitle: meetingTitle,
+            meetingDate: meetingDate,
+          );
+          
+          if (Get.isLogEnable) {
+            Get.log('Meeting summary generated successfully');
+          }
+        } catch (e) {
+          if (Get.isLogEnable) {
+            Get.log('Failed to generate summary: $e');
+          }
+        }
+      }
+      
+      // 6. 清理：删除 TOS 中的音频文件（可选）
+      try {
+        final objectKey = audioUrl.split('/').last;
+        await _uploadService.deleteAudioFile(objectKey);
+      } catch (e) {
+        // 忽略删除错误
+      }
+      
+      return VolcanoTranscriptionResult(
+        text: fullText,
+        language: 'zh-CN',
+        segments: segments,
+        summary: summary,
+      );
       
     } catch (e) {
       if (Get.isLogEnable) {
@@ -119,63 +162,23 @@ class VolcanoTranscriptionService {
     }
   }
 
-  /// 从字节数据转录（需要先保存为临时文件）
-  Future<VolcanoTranscriptionResult> transcribeFromBytes(Uint8List audioData, String format) async {
-    // 创建临时文件
-    final tempDir = await getTemporaryDirectory();
-    final tempFile = File(path.join(tempDir.path, 'temp_audio.$format'));
-    await tempFile.writeAsBytes(audioData);
-    
-    try {
-      return await transcribe(tempFile);
-    } finally {
-      // 清理临时文件
-      if (await tempFile.exists()) {
-        await tempFile.delete();
-      }
+  /// 转换 ASR 片段格式
+  List<VolcanoTranscriptionSegment> _convertSegments(List<ASRSegment>? asrSegments) {
+    if (asrSegments == null || asrSegments.isEmpty) {
+      return [];
     }
-  }
-
-  /// 获取音频格式
-  String _getAudioFormat(String filePath) {
-    final ext = path.extension(filePath).toLowerCase();
-    switch (ext) {
-      case '.mp3':
-        return 'mp3';
-      case '.wav':
-        return 'wav';
-      case '.m4a':
-        return 'm4a';
-      case '.aac':
-        return 'aac';
-      case '.pcm':
-        return 'pcm';
-      default:
-        return 'auto';
-    }
-  }
-
-  /// 转换 ASR 结果为统一格式
-  VolcanoTranscriptionResult _convertToTranscriptionResult(ASRResult asrResult) {
-    final segments = asrResult.segments.map((segment) {
-      return VolcanoTranscriptionSegment(
-        text: segment.text,
-        startTime: segment.startTime,
-        endTime: segment.endTime,
-        speakerId: segment.speakerId,
-        confidence: segment.confidence,
-      );
-    }).toList();
     
-    return VolcanoTranscriptionResult(
-      text: asrResult.text,
-      segments: segments,
-      language: asrResult.language,
-      confidence: asrResult.confidence,
-      metadata: {
-        'provider': 'volcano',
-        'segments_count': segments.length,
-      },
-    );
+    return asrSegments.map((segment) => VolcanoTranscriptionSegment(
+      text: segment.text,
+      startTime: segment.startTime,
+      endTime: segment.endTime,
+      speakerId: segment.speakerId,
+      confidence: segment.confidence,
+    )).toList();
+  }
+  
+  /// 清理资源
+  void dispose() {
+    _uploadService.dispose();
   }
 }

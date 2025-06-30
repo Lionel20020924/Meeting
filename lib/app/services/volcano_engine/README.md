@@ -1,6 +1,11 @@
 # 火山引擎语音识别服务集成
 
-本模块实现了火山引擎语音识别（ASR）服务的集成，用于替代 OpenAI Whisper 进行语音转文字。
+本模块实现了火山引擎语音识别（ASR）大模型服务的集成，用于替代 OpenAI Whisper 进行语音转文字。
+
+**重要更新**：
+- 使用最新的 v3 大模型 API
+- TOS 服务使用 MinIO 客户端（S3 兼容）
+- 集成豆包 AI 生成会议摘要
 
 ## 功能特点
 
@@ -8,7 +13,9 @@
 - 国内服务，延迟更低
 - 支持多种音频格式（MP3、WAV、M4A、AAC 等）
 - 支持时间戳和标点符号
-- 可选的说话人分离功能
+- 支持说话人分离（diarization）
+- 支持智能分段
+- 集成豆包 AI 自动生成会议摘要
 
 ## 配置步骤
 
@@ -38,7 +45,15 @@ TOS_SECRET_ACCESS_KEY=your_tos_secret_access_key
 TOS_ENDPOINT=tos-s3-cn-beijing.volces.com
 TOS_BUCKET_NAME=your_bucket_name
 TOS_REGION=cn-beijing
+
+# 豆包 AI 配置（可选，用于生成会议摘要）
+ARK_API_KEY=your_doubao_ai_api_key
 ```
+
+**注意**：
+- TOS_SECRET_ACCESS_KEY 如果是 Base64 编码的，系统会自动解码
+- 确保 TOS_REGION 拼写正确（是 `cn-beijing` 而不是 `cn-beijin`）
+- ARK_API_KEY 用于调用豆包 AI 生成会议摘要
 
 ### 3. 使用方式
 
