@@ -16,11 +16,63 @@ class TOSService {
 
   TOSService({
     required this.accessKeyId,
-    required this.secretAccessKey,
+    required String secretAccessKey,
     required this.endpoint,
     required this.bucketName,
     required this.region,
-  });
+  }) : secretAccessKey = _decodeSecretKeyIfNeeded(secretAccessKey);
+  
+  static String _decodeSecretKeyIfNeeded(String key) {
+    if (key.isEmpty) return key;
+    
+    try {
+      // 尝试 Base64 解码
+      final firstDecode = base64Decode(key);
+      var decodedString = utf8.decode(firstDecode);
+      
+      // 检查是否需要第二次解码
+      if (decodedString.length < 50 && !decodedString.contains(' ')) {
+        try {
+          // 添加填充
+          final remainder = decodedString.length % 4;
+          if (remainder != 0) {
+            decodedString += '=' * (4 - remainder);
+          }
+          
+          // 第二次解码
+          final secondDecode = base64Decode(decodedString);
+          final hexString = utf8.decode(secondDecode);
+          
+          // 检查是否是十六进制字符串
+          if (RegExp(r'^[0-9a-fA-F]+$').hasMatch(hexString) && hexString.length == 32) {
+            // 将十六进制字符串转换为字节
+            final bytes = <int>[];
+            for (int i = 0; i < hexString.length; i += 2) {
+              bytes.add(int.parse(hexString.substring(i, i + 2), radix: 16));
+            }
+            
+            if (Get.isLogEnable) {
+              Get.log('TOS Secret Key decoded from double Base64 + hex');
+              Get.log('  Hex string: $hexString');
+              Get.log('  Final bytes: ${bytes.length}');
+            }
+            
+            // 返回字节的字符串表示
+            return String.fromCharCodes(bytes);
+          }
+          
+          return hexString;
+        } catch (e) {
+          return decodedString;
+        }
+      }
+      
+      return decodedString;
+    } catch (e) {
+      // 不是 Base64，返回原值
+      return key;
+    }
+  }
 
   /// 上传文件到 TOS
   Future<String> uploadFile(File file, {String? objectKey}) async {

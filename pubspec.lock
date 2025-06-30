@@ -73,14 +73,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.2"
-  buffer:
-    dependency: transitive
-    description:
-      name: buffer
-      sha256: "389da2ec2c16283c8787e0adaede82b1842102f8c8aae2f49003a766c5c6b3d1"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.2.3"
   characters:
     dependency: transitive
     description:
@@ -105,14 +97,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.19.1"
-  convert:
-    dependency: transitive
-    description:
-      name: convert
-      sha256: b30acd5944035672bc15c6b7a8b47d773e41e2f17de064350988c5d02adb1c68
-      url: "https://pub.dev"
-    source: hosted
-    version: "3.1.2"
   crypto:
     dependency: "direct main"
     description:
@@ -209,7 +193,7 @@ packages:
     source: hosted
     version: "1.4.0"
   http_parser:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: http_parser
       sha256: "178d74305e7866013777bab2c3d8726205dc5a4dd935297175b19a23a2e66571"
@@ -280,22 +264,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.16.0"
-  mime:
-    dependency: transitive
-    description:
-      name: mime
-      sha256: "41a20518f0cb1256669420fdba0cd90d21561e560ac240f26ef8322e45bb7ed6"
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.0.0"
-  minio:
-    dependency: "direct main"
-    description:
-      name: minio
-      sha256: "9fa3d041237d3a0dabfd14c11f6adbefe71f6973d64192f6f1fc3e174013001e"
-      url: "https://pub.dev"
-    source: hosted
-    version: "3.5.7"
   path:
     dependency: "direct main"
     description:
@@ -400,14 +368,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.2.1"
-  petitparser:
-    dependency: transitive
-    description:
-      name: petitparser
-      sha256: "07c8f0b1913bcde1ff0d26e57ace2f3012ccbf2b204e070290dad3bb22797646"
-      url: "https://pub.dev"
-    source: hosted
-    version: "6.1.0"
   platform:
     dependency: transitive
     description:
@@ -613,14 +573,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.1.0"
-  xml:
-    dependency: transitive
-    description:
-      name: xml
-      sha256: b015a8ad1c488f66851d762d3090a21c600e479dc75e68328c52774040cf9226
-      url: "https://pub.dev"
-    source: hosted
-    version: "6.5.0"
 sdks:
   dart: ">=3.8.1 <4.0.0"
   flutter: ">=3.27.0"

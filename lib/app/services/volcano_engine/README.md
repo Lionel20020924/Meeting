@@ -1,6 +1,6 @@
 # 火山引擎语音识别服务集成
 
-本模块实现了火山引擎语音识别（ASR）大模型服务的集成，用于替代 OpenAI Whisper 进行语音转文字。
+本模块实现了火山引擎语音识别（ASR）大模型服务的集成，是项目中唯一的语音转文字服务。
 
 **重要更新**：
 - 使用最新的 v3 大模型 API
@@ -57,28 +57,25 @@ ARK_API_KEY=your_doubao_ai_api_key
 
 ### 3. 使用方式
 
-系统会自动检测可用的转录服务，优先使用火山引擎：
+系统使用火山引擎进行所有语音转录：
 
 ```dart
-// 自动选择最佳服务
+// 音频转录
 final result = await TranscriptionService.transcribeAudio(
   audioData: audioBytes,
   language: 'zh',
 );
 
-// 强制使用火山引擎
-final result = await TranscriptionService.transcribeAudio(
+// 简单转录（仅返回文本）
+final text = await TranscriptionService.transcribeAudioSimple(
   audioData: audioBytes,
   language: 'zh',
-  provider: TranscriptionProvider.volcano,
 );
 ```
 
-## 服务优先级
+## 转录服务说明
 
-1. **火山引擎** - 优先使用（如果配置可用）
-2. **WhisperX** - 第二选择
-3. **OpenAI** - 最后备选
+火山引擎是本项目唯一的语音转文字服务提供商。所有音频转录功能都通过火山引擎 ASR 大模型实现。
 
 ## 注意事项
 
@@ -89,8 +86,8 @@ final result = await TranscriptionService.transcribeAudio(
 
 ## 错误处理
 
-服务会自动进行错误处理和降级：
-- 如果火山引擎服务不可用，会自动切换到 WhisperX 或 OpenAI
+服务会自动进行错误处理：
+- 如果火山引擎服务不可用，会抛出明确的错误信息
 - 网络错误会自动重试
 - 所有错误都会记录在日志中
 

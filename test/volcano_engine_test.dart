@@ -9,36 +9,26 @@ void main() {
   });
 
   group('Volcano Engine Integration Tests', () {
-    test('Check available services', () async {
-      final services = await TranscriptionService.getAvailableServices();
+    test('Check if service is available', () async {
+      final isAvailable = await TranscriptionService.isAvailable();
       
-      print('Available services:');
-      services.forEach((service, isAvailable) {
-        print('  $service: $isAvailable');
-      });
+      print('Volcano Engine service available: $isAvailable');
       
-      expect(services, isA<Map<String, bool>>());
-      expect(services.containsKey('volcano'), true);
-      expect(services.containsKey('whisperx'), true);
-      expect(services.containsKey('openai'), true);
+      expect(isAvailable, isA<bool>());
     });
     
-    test('Get preferred provider', () async {
-      final provider = await TranscriptionService.getPreferredProvider();
+    test('Get service status', () async {
+      final status = await TranscriptionService.getServiceStatus();
       
-      print('Preferred provider: $provider');
+      print('Service status:');
+      status.forEach((key, value) {
+        print('  $key: $value');
+      });
       
-      // The preferred provider depends on which services are configured
-      if (provider != null) {
-        expect(
-          provider, 
-          anyOf([
-            TranscriptionProvider.volcano,
-            TranscriptionProvider.whisperx,
-            TranscriptionProvider.openai,
-          ]),
-        );
-      }
+      expect(status, isA<Map<String, dynamic>>());
+      expect(status['provider'], equals('volcano'));
+      expect(status.containsKey('available'), true);
+      expect(status.containsKey('configured'), true);
     });
   });
 }

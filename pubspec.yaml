@@ -59,9 +59,6 @@ dependencies:
   # For file paths
   path_provider: ^2.1.5
   
-  # For HTTP multipart requests
-  http_parser: ^4.0.2
-  
   # For cryptographic operations
   crypto: ^3.0.3
   
@@ -73,9 +70,6 @@ dependencies:
   
   # For UUID generation
   uuid: ^4.5.1
-  
-  # MinIO client for S3-compatible storage
-  minio: ^3.4.0
 
 dev_dependencies:
   flutter_test:

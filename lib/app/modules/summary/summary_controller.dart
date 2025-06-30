@@ -214,17 +214,16 @@ class SummaryController extends GetxController {
       
       final audioData = await audioFile.readAsBytes();
       
-      // Check if any transcription service is available
-      final availableServices = await TranscriptionService.getAvailableServices();
-      if (!availableServices.values.any((available) => available)) {
-        throw Exception('No transcription service configured (need REPLICATE_API_KEY or OPENAI_API_KEY)');
+      // Check if transcription service is available
+      if (!await TranscriptionService.isAvailable()) {
+        throw Exception('火山引擎转录服务未配置，请检查 API 密钥设置');
       }
       
       if (Get.isLogEnable) {
         Get.log('Starting transcription with available service...');
       }
       
-      // Transcribe using available service (WhisperX preferred, fallback to OpenAI)
+      // Transcribe using Volcano Engine
       final transcription = await TranscriptionService.transcribeAudioSimple(
         audioData: audioData,
         language: 'zh',
