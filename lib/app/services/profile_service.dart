@@ -19,6 +19,7 @@ class ProfileService {
       'defaultDuration': 30,
       'autoTranscribe': true,
       'autoSummarize': true,
+      'enableSpeakerDiarization': true,
       'language': 'zh',
     },
   };

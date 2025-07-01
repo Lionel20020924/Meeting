@@ -3,6 +3,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../audio_upload_service.dart';
 import 'asr_service.dart';
 import '../doubao_ai_service.dart';
+import '../profile_service.dart';
 import 'package:get/get.dart';
 
 /// 转录结果类
@@ -81,11 +82,19 @@ class VolcanoTranscriptionService {
         Get.log('Audio uploaded successfully. Starting ASR...');
       }
       
-      // 2. 提交 ASR 任务
+      // 2. 读取用户的speaker diarization偏好设置
+      final profile = await ProfileService.loadProfile();
+      final enableSpeakerDiarization = profile['meetingPreferences']?['enableSpeakerDiarization'] ?? true;
+      
+      if (Get.isLogEnable) {
+        Get.log('Speaker diarization enabled: $enableSpeakerDiarization');
+      }
+      
+      // 3. 提交 ASR 任务
       final taskId = await _asrService.submitASRTask(
         audioUrl: audioUrl,
         language: 'zh-CN',
-        enableDiarization: true,
+        enableDiarization: enableSpeakerDiarization,
         enableIntelligentSegment: true,
         enablePunctuation: true,
         enableTimestamp: true,
@@ -95,7 +104,7 @@ class VolcanoTranscriptionService {
         Get.log('ASR task submitted: $taskId');
       }
       
-      // 3. 等待并获取结果
+      // 4. 等待并获取结果
       final asrResult = await _asrService.waitForResult(
         taskId,
         timeout: const Duration(minutes: 10),
@@ -105,7 +114,7 @@ class VolcanoTranscriptionService {
         Get.log('ASR completed successfully');
       }
       
-      // 4. 转换结果格式
+      // 5. 转换结果格式
       final segments = _convertSegments(asrResult.segments);
       
       // 首先尝试从metadata中获取转录文本
@@ -123,7 +132,7 @@ class VolcanoTranscriptionService {
         Get.log('Transcription text extracted: ${fullText.substring(0, fullText.length > 100 ? 100 : fullText.length)}...');
       }
       
-      // 5. 生成会议摘要（如果需要）
+      // 6. 生成会议摘要（如果需要）
       MeetingSummary? summary;
       if (generateSummary && dotenv.env['ARK_API_KEY']?.isNotEmpty == true) {
         try {
@@ -153,7 +162,7 @@ class VolcanoTranscriptionService {
         }
       }
       
-      // 6. 清理：删除 TOS 中的音频文件（可选）
+      // 7. 清理：删除 TOS 中的音频文件（可选）
       try {
         final objectKey = audioUrl.split('/').last;
         await _uploadService.deleteAudioFile(objectKey);

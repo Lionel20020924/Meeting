@@ -426,6 +426,19 @@ class ProfileView extends GetView<ProfileController> {
                                       controller.updatePreference('autoSummarize', value);
                                     },
                                   )),
+                                  Container(
+                                    height: 0.5,
+                                    margin: const EdgeInsets.symmetric(horizontal: 16),
+                                    color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
+                                  ),
+                                  Obx(() => _buildMinimalSwitchTile(
+                                    context,
+                                    title: 'Speaker Recognition',
+                                    value: controller.profileData['meetingPreferences']?['enableSpeakerDiarization'] ?? true,
+                                    onChanged: controller.isEditing.value ? null : (value) {
+                                      controller.updatePreference('enableSpeakerDiarization', value);
+                                    },
+                                  )),
                                 ],
                               ),
                             ),
