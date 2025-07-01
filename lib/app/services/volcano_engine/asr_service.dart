@@ -92,18 +92,39 @@ class VolcanoASRService {
           // API调用成功
           print('API call successful!');
           
-          // 检查响应头中是否有任务ID
-          final taskIdHeader = response.headers['x-task-id'] ?? response.headers['task-id'];
-          if (taskIdHeader != null) {
-            print('Task ID from header: $taskIdHeader');
-            return taskIdHeader;
+          // 检查响应头中的任务标识 - 尝试多个可能的字段
+          final requestId = response.headers['x-api-request-id'];
+          final logId = response.headers['x-tt-logid'];
+          final traceId = response.headers['x-tt-trace-id'];
+          
+          print('Available IDs:');
+          print('  x-api-request-id: $requestId');
+          print('  x-tt-logid: $logId');
+          print('  x-tt-trace-id: $traceId');
+          
+          // 优先使用 x-api-request-id 作为任务ID
+          if (requestId != null && requestId.isNotEmpty) {
+            print('Using x-api-request-id as task ID: $requestId');
+            return requestId;
           }
           
-          // 如果响应体为空但API状态成功，生成任务ID
+          // 备选：使用 x-tt-logid
+          if (logId != null && logId.isNotEmpty) {
+            print('Using x-tt-logid as task ID: $logId');
+            return logId;
+          }
+          
+          // 最后备选：使用 x-tt-trace-id 的一部分
+          if (traceId != null && traceId.isNotEmpty) {
+            print('Using x-tt-trace-id as task ID: $traceId');
+            return traceId.split('-')[1]; // 使用trace ID的第二部分
+          }
+          
+          // 如果都没有，仍然生成一个任务ID
           if (response.body.isEmpty || response.body == '{}') {
-            print('Response body is empty but API successful - generating task ID');
+            print('No task ID found in headers, generating fallback ID');
             final taskId = 'task_${DateTime.now().millisecondsSinceEpoch}';
-            print('Generated task ID for tracking: $taskId');
+            print('Generated fallback task ID: $taskId');
             return taskId;
           }
         }
@@ -135,20 +156,18 @@ class VolcanoASRService {
   /// 查询识别任务状态
   Future<ASRTaskResult> queryTaskStatus(String taskId) async {
     try {
-      final requestId = const Uuid().v4();
+      // 根据文档，查询时任务ID应该在 X-Api-Request-Id 头中
+      // 请求体应该是空的 JSON 对象
+      final requestBody = <String, dynamic>{};
       
-      final requestBody = {
-        'task_id': taskId,
-      };
-      
-      // 发送请求 - 根据官方文档，不需要查询参数
+      // 发送请求 - 根据官方文档，任务ID在请求头中
       final url = Uri.parse('$baseUrl/query');
       
       // Debug logging
       print('ASR Query URL: ${url.toString()}');
       print('ASR Query Headers: ${jsonEncode({
         'Content-Type': 'application/json',
-        'X-Api-Request-Id': requestId,
+        'X-Api-Request-Id': taskId,  // 使用任务ID作为请求ID
         'X-Api-App-Key': appKey,
         'X-Api-Access-Key': accessKey,
         'X-Api-Resource-Id': 'volc.bigasr.auc',
@@ -159,10 +178,10 @@ class VolcanoASRService {
         url,
         headers: {
           'Content-Type': 'application/json',
-          'X-Api-Request-Id': requestId,
-          'X-Api-App-Key': appKey,  // APP ID - 根据官方文档
-          'X-Api-Access-Key': accessKey,  // Access Token - 根据官方文档
-          'X-Api-Resource-Id': 'volc.bigasr.auc',  // 修正资源 ID
+          'X-Api-Request-Id': taskId,  // 任务ID在这里 - 根据官方文档
+          'X-Api-App-Key': appKey,  // APP ID
+          'X-Api-Access-Key': accessKey,  // Access Token
+          'X-Api-Resource-Id': 'volc.bigasr.auc',  // 资源 ID
         },
         body: jsonEncode(requestBody),
       );
@@ -175,28 +194,72 @@ class VolcanoASRService {
       if (response.statusCode == 200) {
         // 检查API状态码
         final apiStatusCode = response.headers['x-api-status-code'];
+        final apiMessage = response.headers['x-api-message'];
         print('Query API Status Code: $apiStatusCode');
+        print('Query API Message: $apiMessage');
         
         if (apiStatusCode == '20000000') {
-          // 成功响应，但可能任务还在处理中
+          // 成功响应
           if (response.body.isEmpty || response.body == '{}') {
-            print('Query response empty - task might still be processing');
+            print('Query response empty - task completed successfully or still processing');
             return ASRTaskResult(
               taskId: taskId,
-              status: 'processing',
+              status: 'success',
             );
+          }
+          
+          // 解析响应体中的详细结果
+          try {
+            final result = jsonDecode(response.body);
+            print('Query parsed result: $result');
+            
+            if (result['code'] == 0) {
+              return ASRTaskResult.fromJson(result['data']);
+            }
+          } catch (e) {
+            // 如果解析失败，但API状态码是成功的，返回成功状态
+            return ASRTaskResult(
+              taskId: taskId,
+              status: 'success',
+            );
+          }
+        } else if (apiStatusCode == '20000001') {
+          // 任务正在处理中
+          return ASRTaskResult(
+            taskId: taskId,
+            status: 'processing',
+          );
+        } else if (apiStatusCode == '20000002') {
+          // 任务在队列中
+          return ASRTaskResult(
+            taskId: taskId,
+            status: 'queued',
+          );
+        } else {
+          // 处理各种错误状态码
+          final errorMsg = _getErrorMessage(apiStatusCode, apiMessage);
+          throw Exception('ASR task failed: $errorMsg (code: $apiStatusCode)');
+        }
+        
+        // 尝试解析响应体（备用）
+        if (response.body.isNotEmpty && response.body != '{}') {
+          try {
+            final result = jsonDecode(response.body);
+            print('Query parsed result: $result');
+            
+            if (result['code'] == 0) {
+              return ASRTaskResult.fromJson(result['data']);
+            } else {
+              final errorMsg = result['message'] ?? result['header']?['message'] ?? 'Unknown query error';
+              throw Exception('Query failed: $errorMsg (code: ${result['code']})');
+            }
+          } catch (e) {
+            print('Failed to parse response body: $e');
           }
         }
         
-        final result = jsonDecode(response.body);
-        print('Query parsed result: $result');
-        
-        if (result['code'] == 0) {
-          return ASRTaskResult.fromJson(result['data']);
-        } else {
-          final errorMsg = result['message'] ?? result['header']?['message'] ?? 'Unknown query error';
-          throw Exception('Query failed: $errorMsg (code: ${result['code']})');
-        }
+        // 如果都没有处理到，返回通用错误
+        throw Exception('Unexpected query response: $apiStatusCode - $apiMessage');
       } else {
         throw Exception('HTTP error: ${response.statusCode} - ${response.body}');
       }
@@ -249,6 +312,45 @@ class VolcanoASRService {
         return 'ogg';
       default:
         return 'mp3';  // 默认格式
+    }
+  }
+
+  /// 根据错误状态码返回友好的错误消息
+  String _getErrorMessage(String? statusCode, String? apiMessage) {
+    // 首先尝试从API消息中提取有用信息
+    if (apiMessage != null && apiMessage.isNotEmpty) {
+      if (apiMessage.contains('Invalid audio format') || apiMessage.contains('audio convert failed')) {
+        return '音频格式无效，请使用MP3、WAV或M4A格式的音频文件';
+      }
+      if (apiMessage.contains('cannot find task')) {
+        return '找不到指定的任务，任务可能已过期或不存在';
+      }
+      if (apiMessage.contains('Process failed')) {
+        return '音频处理失败：$apiMessage';
+      }
+    }
+
+    // 根据状态码返回对应的错误消息
+    switch (statusCode) {
+      case '45000000':
+        return '请求参数错误';
+      case '45000001':
+        return '无效的参数';
+      case '45000151':
+        return '音频格式无效，请使用MP3、WAV或M4A格式的音频文件';
+      case '45000152':
+        return '音频文件过大，请使用小于500MB的音频文件';
+      case '45000153':
+        return '音频时长过长，请使用短于5小时的音频文件';
+      case '50000000':
+        return '服务器内部错误，请稍后重试';
+      case '55000000':
+        return '服务暂时不可用，请稍后重试';
+      default:
+        if (apiMessage != null && apiMessage.isNotEmpty) {
+          return apiMessage;
+        }
+        return '未知错误 (状态码: $statusCode)';
     }
   }
 
