@@ -41,6 +41,10 @@ void main() {
         
         // Submit ASR task
         print('\nSubmitting ASR task...');
+        
+        // 测试用一个简单的HTTP URL代替复杂的预签名URL
+        print('Original URL: $audioUrl');
+        
         final taskId = await asrService.submitASRTask(
           audioUrl: audioUrl,
           language: 'zh-CN',

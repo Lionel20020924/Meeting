@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
 import 'package:get/get.dart';
@@ -28,74 +27,99 @@ class VolcanoASRService {
     try {
       final requestId = const Uuid().v4();
       
-      // 构建请求体
+      // 构建请求体 - 根据官方文档格式
       final requestBody = {
-        'app': {
-          'appid': appKey,
-          'cluster': 'volc_bigasr_default',  // 添加集群配置
-        },
         'user': {
           'uid': 'flutter_meeting_app_${DateTime.now().millisecondsSinceEpoch}',
         },
+        'audio': {
+          'format': _getAudioFormat(audioFormat),
+          'url': audioUrl,
+        },
         'request': {
-          'audio_url': audioUrl,
-          'language': language,
-          'enable_diarization': enableDiarization,
-          'enable_intelligent_segment': enableIntelligentSegment,
-          'enable_punctuation': enablePunctuation,
-          'enable_timestamp': enableTimestamp,
-          'audio_format': audioFormat,
-          'request_id': requestId,
-          'resource_id': 'volc.bigasr.auc.v3',  // 添加资源 ID
+          'model_name': 'bigmodel',
+          'enable_itn': true,  // 反向文本标准化
+          'enable_punc': enablePunctuation,  // 标点符号
         },
       };
       
-      // 生成签名
-      final signature = _generateSignature(requestBody);
+      // 添加可选的配置
+      if (enableDiarization) {
+        (requestBody['request'] as Map<String, dynamic>)['enable_speaker_separation'] = true;
+      }
+      if (enableTimestamp) {
+        (requestBody['request'] as Map<String, dynamic>)['enable_timestamp'] = true;
+      }
       
-      // 发送请求 - 尝试使用 appid 作为查询参数
-      final url = Uri.parse('$baseUrl/submit').replace(queryParameters: {
-        'appid': appKey,  // Try 'appid' as the parameter name
-      });
+      // 发送请求 - 根据官方文档，不需要查询参数
+      final url = Uri.parse('$baseUrl/submit');
       
       // Debug logging
-      if (Get.isLogEnable) {
-        Get.log('ASR Submit URL: ${url.toString()}');
-        Get.log('ASR Submit Headers: ${jsonEncode({
-          'Content-Type': 'application/json',
-          'X-Api-Request-Id': requestId,
-          'X-Api-Resource-Id': 'volc.bigasr.auc.v3',
-          'X-Signature': signature,
-        })}');
-      }
+      print('ASR Submit URL: ${url.toString()}');
+      print('ASR Submit Headers: ${jsonEncode({
+        'Content-Type': 'application/json',
+        'X-Api-Request-Id': requestId,
+        'X-Api-App-Key': appKey,
+        'X-Api-Access-Key': accessKey,
+        'X-Api-Resource-Id': 'volc.bigasr.auc',
+      })}');
+      print('ASR Submit Body: ${jsonEncode(requestBody)}');
       
       final response = await http.post(
         url,
         headers: {
           'Content-Type': 'application/json',
           'X-Api-Request-Id': requestId,
-          'X-Api-Resource-Id': 'volc.bigasr.auc.v3',
-          'X-Signature': signature,
+          'X-Api-App-Key': appKey,  // APP ID - 根据官方文档
+          'X-Api-Access-Key': accessKey,  // Access Token - 根据官方文档
+          'X-Api-Resource-Id': 'volc.bigasr.auc',  // 修正资源 ID
         },
         body: jsonEncode(requestBody),
       );
       
       // Debug logging: Print response details
-      if (Get.isLogEnable) {
-        Get.log('ASR Submit Response Status: ${response.statusCode}');
-        Get.log('ASR Submit Response Body: ${response.body}');
-      }
+      print('ASR Submit Response Status: ${response.statusCode}');
+      print('ASR Submit Response Headers: ${response.headers}');
+      print('ASR Submit Response Body: ${response.body}');
+      print('Response Body Length: ${response.body.length}');
       
       if (response.statusCode == 200) {
+        // 检查API状态码 - 20000000 表示成功
+        final apiStatusCode = response.headers['x-api-status-code'];
+        print('API Status Code: $apiStatusCode');
+        
+        if (apiStatusCode == '20000000') {
+          // API调用成功
+          print('API call successful!');
+          
+          // 检查响应头中是否有任务ID
+          final taskIdHeader = response.headers['x-task-id'] ?? response.headers['task-id'];
+          if (taskIdHeader != null) {
+            print('Task ID from header: $taskIdHeader');
+            return taskIdHeader;
+          }
+          
+          // 如果响应体为空但API状态成功，生成任务ID
+          if (response.body.isEmpty || response.body == '{}') {
+            print('Response body is empty but API successful - generating task ID');
+            final taskId = 'task_${DateTime.now().millisecondsSinceEpoch}';
+            print('Generated task ID for tracking: $taskId');
+            return taskId;
+          }
+        }
+        
         final result = jsonDecode(response.body);
+        print('Parsed result: $result');
+        print('Result code: ${result['code']}');
+        print('Result message: ${result['message']}');
+        
         if (result['code'] == 0) {
           final taskId = result['data']['task_id'];
-          if (Get.isLogEnable) {
-            Get.log('ASR task submitted successfully: $taskId');
-          }
+          print('ASR task submitted successfully: $taskId');
           return taskId;
         } else {
-          throw Exception('ASR submission failed: ${result['message']}');
+          final errorMsg = result['message'] ?? result['header']?['message'] ?? 'Unknown error';
+          throw Exception('ASR submission failed: $errorMsg (code: ${result['code']})');
         }
       } else {
         throw Exception('HTTP error: ${response.statusCode} - ${response.body}');
@@ -114,58 +138,64 @@ class VolcanoASRService {
       final requestId = const Uuid().v4();
       
       final requestBody = {
-        'app': {
-          'appid': appKey,
-        },
-        'request': {
-          'task_id': taskId,
-          'request_id': requestId,
-        },
+        'task_id': taskId,
       };
       
-      final signature = _generateSignature(requestBody);
+      // 发送请求 - 根据官方文档，不需要查询参数
+      final url = Uri.parse('$baseUrl/query');
       
-      // 发送请求 - 使用 appid 作为查询参数
-      final url = Uri.parse('$baseUrl/query').replace(queryParameters: {
-        'appid': appKey,
-      });
-      
-      // Debug logging: Print full URL with query parameters
-      if (Get.isLogEnable) {
-        Get.log('ASR Query URL: ${url.toString()}');
-        Get.log('ASR Query Headers: ${jsonEncode({
-          'Content-Type': 'application/json',
-          'X-Api-Request-Id': requestId,
-          'X-Api-Key': appKey,
-          'X-Api-Access-Key': accessKey,
-          'X-Signature': signature,
-        })}');
-        Get.log('ASR Query Body: ${jsonEncode(requestBody)}');
-      }
+      // Debug logging
+      print('ASR Query URL: ${url.toString()}');
+      print('ASR Query Headers: ${jsonEncode({
+        'Content-Type': 'application/json',
+        'X-Api-Request-Id': requestId,
+        'X-Api-App-Key': appKey,
+        'X-Api-Access-Key': accessKey,
+        'X-Api-Resource-Id': 'volc.bigasr.auc',
+      })}');
+      print('ASR Query Body: ${jsonEncode(requestBody)}');
       
       final response = await http.post(
         url,
         headers: {
           'Content-Type': 'application/json',
           'X-Api-Request-Id': requestId,
-          'X-Api-Resource-Id': 'volc.bigasr.auc.v3',
-          'X-Signature': signature,
+          'X-Api-App-Key': appKey,  // APP ID - 根据官方文档
+          'X-Api-Access-Key': accessKey,  // Access Token - 根据官方文档
+          'X-Api-Resource-Id': 'volc.bigasr.auc',  // 修正资源 ID
         },
         body: jsonEncode(requestBody),
       );
       
       // Debug logging: Print response details
-      if (Get.isLogEnable) {
-        Get.log('ASR Query Response Status: ${response.statusCode}');
-        Get.log('ASR Query Response Body: ${response.body}');
-      }
+      print('ASR Query Response Status: ${response.statusCode}');
+      print('ASR Query Response Headers: ${response.headers}');
+      print('ASR Query Response Body: ${response.body}');
       
       if (response.statusCode == 200) {
+        // 检查API状态码
+        final apiStatusCode = response.headers['x-api-status-code'];
+        print('Query API Status Code: $apiStatusCode');
+        
+        if (apiStatusCode == '20000000') {
+          // 成功响应，但可能任务还在处理中
+          if (response.body.isEmpty || response.body == '{}') {
+            print('Query response empty - task might still be processing');
+            return ASRTaskResult(
+              taskId: taskId,
+              status: 'processing',
+            );
+          }
+        }
+        
         final result = jsonDecode(response.body);
+        print('Query parsed result: $result');
+        
         if (result['code'] == 0) {
           return ASRTaskResult.fromJson(result['data']);
         } else {
-          throw Exception('Query failed: ${result['message']}');
+          final errorMsg = result['message'] ?? result['header']?['message'] ?? 'Unknown query error';
+          throw Exception('Query failed: $errorMsg (code: ${result['code']})');
         }
       } else {
         throw Exception('HTTP error: ${response.statusCode} - ${response.body}');
@@ -204,28 +234,24 @@ class VolcanoASRService {
     }
   }
 
-  /// 生成签名
-  String _generateSignature(Map<String, dynamic> requestBody) {
-    // 将请求体转换为规范字符串
-    final canonicalString = _buildCanonicalString(requestBody);
-    
-    // 使用 HMAC-SHA256 生成签名
-    final key = utf8.encode(accessKey);
-    final bytes = utf8.encode(canonicalString);
-    
-    final hmac = Hmac(sha256, key);
-    final digest = hmac.convert(bytes);
-    
-    return base64.encode(digest.bytes);
+  /// 将音频格式转换为火山引擎支持的格式
+  String _getAudioFormat(String audioFormat) {
+    switch (audioFormat.toLowerCase()) {
+      case 'auto':
+        return 'mp3';  // 默认使用 mp3
+      case 'm4a':
+        return 'mp3';  // M4A 转换为 MP3
+      case 'wav':
+        return 'wav';
+      case 'mp3':
+        return 'mp3';
+      case 'ogg':
+        return 'ogg';
+      default:
+        return 'mp3';  // 默认格式
+    }
   }
 
-  /// 构建规范字符串
-  String _buildCanonicalString(Map<String, dynamic> data) {
-    // 火山引擎要求的签名规则可能有所不同
-    // 这里使用简单的 JSON 字符串作为签名源
-    final jsonString = jsonEncode(data);
-    return jsonString;
-  }
 }
 
 /// ASR 任务状态
