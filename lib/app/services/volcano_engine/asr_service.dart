@@ -45,7 +45,7 @@ class VolcanoASRService {
       
       // 添加可选的配置
       if (enableDiarization) {
-        (requestBody['request'] as Map<String, dynamic>)['enable_speaker_separation'] = true;
+        (requestBody['request'] as Map<String, dynamic>)['enable_speaker_info'] = true;
       }
       if (enableTimestamp) {
         (requestBody['request'] as Map<String, dynamic>)['enable_timestamp'] = true;
@@ -488,11 +488,17 @@ class ASRSegment {
       Get.log('Extracted text: $text');
     }
     
+    // 提取说话人ID - 火山引擎返回的speaker_id字段
+    String? speakerId;
+    if (utterance.containsKey('speaker_id')) {
+      speakerId = utterance['speaker_id']?.toString();
+    }
+    
     return ASRSegment(
       text: text,
       startTime: (utterance['start_time'] as num?)?.toDouble() ?? 0.0,
       endTime: (utterance['end_time'] as num?)?.toDouble() ?? 0.0,
-      speakerId: null, // 火山引擎格式中可能没有speakerId
+      speakerId: speakerId,
       confidence: (utterance['confidence'] as num?)?.toDouble(),
       words: words,
     );
