@@ -201,22 +201,31 @@ class VolcanoASRService {
         if (apiStatusCode == '20000000') {
           // 成功响应
           if (response.body.isEmpty || response.body == '{}') {
-            print('Query response empty - task completed successfully or still processing');
+            print('Query response empty - task completed successfully');
             return ASRTaskResult(
               taskId: taskId,
               status: 'success',
             );
           }
           
-          // 解析响应体中的详细结果
+          // 解析火山引擎的成功响应体
           try {
             final result = jsonDecode(response.body);
             print('Query parsed result: $result');
             
-            if (result['code'] == 0) {
-              return ASRTaskResult.fromJson(result['data']);
+            // 火山引擎成功响应不包含 'code' 字段，直接解析结果
+            if (result.containsKey('result') && result['result'] != null) {
+              print('ASR transcription completed successfully');
+              return ASRTaskResult.fromVolcanoResponse(taskId, result);
+            } else {
+              // 如果没有result字段，可能是任务还在处理但状态是成功
+              return ASRTaskResult(
+                taskId: taskId,
+                status: 'success',
+              );
             }
           } catch (e) {
+            print('Failed to parse success response: $e');
             // 如果解析失败，但API状态码是成功的，返回成功状态
             return ASRTaskResult(
               taskId: taskId,
@@ -240,26 +249,6 @@ class VolcanoASRService {
           final errorMsg = _getErrorMessage(apiStatusCode, apiMessage);
           throw Exception('ASR task failed: $errorMsg (code: $apiStatusCode)');
         }
-        
-        // 尝试解析响应体（备用）
-        if (response.body.isNotEmpty && response.body != '{}') {
-          try {
-            final result = jsonDecode(response.body);
-            print('Query parsed result: $result');
-            
-            if (result['code'] == 0) {
-              return ASRTaskResult.fromJson(result['data']);
-            } else {
-              final errorMsg = result['message'] ?? result['header']?['message'] ?? 'Unknown query error';
-              throw Exception('Query failed: $errorMsg (code: ${result['code']})');
-            }
-          } catch (e) {
-            print('Failed to parse response body: $e');
-          }
-        }
-        
-        // 如果都没有处理到，返回通用错误
-        throw Exception('Unexpected query response: $apiStatusCode - $apiMessage');
       } else {
         throw Exception('HTTP error: ${response.statusCode} - ${response.body}');
       }
@@ -396,6 +385,46 @@ class ASRTaskResult {
       metadata: json['metadata'],
     );
   }
+
+  /// 从火山引擎API响应创建ASRTaskResult
+  factory ASRTaskResult.fromVolcanoResponse(String taskId, Map<String, dynamic> volcanoResponse) {
+    List<ASRSegment>? segments;
+    String? transcriptText;
+    Map<String, dynamic>? metadata;
+    
+    // 解析火山引擎的响应格式
+    if (volcanoResponse['result'] != null) {
+      final result = volcanoResponse['result'];
+      
+      // 提取转录文本
+      transcriptText = result['text'] as String?;
+      
+      // 解析utterances为segments
+      if (result['utterances'] is List) {
+        segments = (result['utterances'] as List)
+            .map((utterance) => ASRSegment.fromVolcanoUtterance(utterance))
+            .toList();
+      }
+      
+      // 保存额外信息
+      metadata = {
+        'duration': volcanoResponse['audio_info']?['duration'],
+        'additions': result['additions'],
+      };
+    }
+    
+    return ASRTaskResult(
+      taskId: taskId,
+      status: 'success',
+      transcriptUrl: null,
+      errorMessage: null,
+      segments: segments,
+      metadata: {
+        'transcript_text': transcriptText,
+        'volcano_response': metadata,
+      },
+    );
+  }
 }
 
 /// ASR 分段结果
@@ -433,6 +462,25 @@ class ASRSegment {
       words: words,
     );
   }
+
+  /// 从火山引擎的utterance格式创建ASRSegment
+  factory ASRSegment.fromVolcanoUtterance(Map<String, dynamic> utterance) {
+    List<ASRWord>? words;
+    if (utterance['words'] is List) {
+      words = (utterance['words'] as List)
+          .map((w) => ASRWord.fromVolcanoWord(w))
+          .toList();
+    }
+    
+    return ASRSegment(
+      text: utterance['text'] ?? '',
+      startTime: (utterance['start_time'] as num?)?.toDouble() ?? 0.0,
+      endTime: (utterance['end_time'] as num?)?.toDouble() ?? 0.0,
+      speakerId: null, // 火山引擎格式中可能没有speakerId
+      confidence: (utterance['confidence'] as num?)?.toDouble(),
+      words: words,
+    );
+  }
 }
 
 /// ASR 词级别结果
@@ -455,6 +503,16 @@ class ASRWord {
       startTime: (json['start_time'] as num?)?.toDouble() ?? 0.0,
       endTime: (json['end_time'] as num?)?.toDouble() ?? 0.0,
       confidence: (json['confidence'] as num?)?.toDouble(),
+    );
+  }
+
+  /// 从火山引擎的word格式创建ASRWord
+  factory ASRWord.fromVolcanoWord(Map<String, dynamic> word) {
+    return ASRWord(
+      word: word['text'] ?? '', // 火山引擎使用 'text' 而不是 'word'
+      startTime: (word['start_time'] as num?)?.toDouble() ?? 0.0,
+      endTime: (word['end_time'] as num?)?.toDouble() ?? 0.0,
+      confidence: (word['confidence'] as num?)?.toDouble(),
     );
   }
 }
