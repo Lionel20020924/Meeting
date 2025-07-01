@@ -107,7 +107,21 @@ class VolcanoTranscriptionService {
       
       // 4. 转换结果格式
       final segments = _convertSegments(asrResult.segments);
-      final fullText = segments.map((s) => s.text).join(' ');
+      
+      // 首先尝试从metadata中获取转录文本
+      String fullText = '';
+      if (asrResult.metadata != null && asrResult.metadata!['transcript_text'] != null) {
+        fullText = asrResult.metadata!['transcript_text'] as String;
+      }
+      
+      // 如果metadata中没有文本，从segments拼接
+      if (fullText.isEmpty && segments.isNotEmpty) {
+        fullText = segments.map((s) => s.text).join(' ');
+      }
+      
+      if (Get.isLogEnable) {
+        Get.log('Transcription text extracted: ${fullText.substring(0, fullText.length > 100 ? 100 : fullText.length)}...');
+      }
       
       // 5. 生成会议摘要（如果需要）
       MeetingSummary? summary;

@@ -396,14 +396,21 @@ class ASRTaskResult {
     if (volcanoResponse['result'] != null) {
       final result = volcanoResponse['result'];
       
-      // 提取转录文本
-      transcriptText = result['text'] as String?;
+      // 提取转录文本 - 检查text字段是否存在
+      if (result.containsKey('text') && result['text'] != null) {
+        transcriptText = result['text'] as String?;
+      }
       
       // 解析utterances为segments
-      if (result['utterances'] is List) {
+      if (result['utterances'] is List && (result['utterances'] as List).isNotEmpty) {
         segments = (result['utterances'] as List)
             .map((utterance) => ASRSegment.fromVolcanoUtterance(utterance))
             .toList();
+        
+        // 如果没有直接的text字段，从utterances中拼接文本
+        if (transcriptText == null || transcriptText.isEmpty) {
+          transcriptText = segments.map((s) => s.text).join(' ');
+        }
       }
       
       // 保存额外信息
@@ -420,7 +427,7 @@ class ASRTaskResult {
       errorMessage: null,
       segments: segments,
       metadata: {
-        'transcript_text': transcriptText,
+        'transcript_text': transcriptText ?? '',
         'volcano_response': metadata,
       },
     );
@@ -472,8 +479,17 @@ class ASRSegment {
           .toList();
     }
     
+    // Debug logging
+    if (Get.isLogEnable) {
+      Get.log('Parsing utterance: $utterance');
+    }
+    final text = utterance['text'] ?? '';
+    if (Get.isLogEnable) {
+      Get.log('Extracted text: $text');
+    }
+    
     return ASRSegment(
-      text: utterance['text'] ?? '',
+      text: text,
       startTime: (utterance['start_time'] as num?)?.toDouble() ?? 0.0,
       endTime: (utterance['end_time'] as num?)?.toDouble() ?? 0.0,
       speakerId: null, // 火山引擎格式中可能没有speakerId
