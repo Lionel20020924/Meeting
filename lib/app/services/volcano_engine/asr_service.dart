@@ -32,6 +32,7 @@ class VolcanoASRService {
       final requestBody = {
         'app': {
           'appid': appKey,
+          'cluster': 'volc_bigasr_default',  // 添加集群配置
         },
         'user': {
           'uid': 'flutter_meeting_app_${DateTime.now().millisecondsSinceEpoch}',
@@ -45,22 +46,45 @@ class VolcanoASRService {
           'enable_timestamp': enableTimestamp,
           'audio_format': audioFormat,
           'request_id': requestId,
+          'resource_id': 'volc.bigasr.auc.v3',  // 添加资源 ID
         },
       };
       
       // 生成签名
       final signature = _generateSignature(requestBody);
       
-      // 发送请求
+      // 发送请求 - 尝试使用 appid 作为查询参数
+      final url = Uri.parse('$baseUrl/submit').replace(queryParameters: {
+        'appid': appKey,  // Try 'appid' as the parameter name
+      });
+      
+      // Debug logging
+      if (Get.isLogEnable) {
+        Get.log('ASR Submit URL: ${url.toString()}');
+        Get.log('ASR Submit Headers: ${jsonEncode({
+          'Content-Type': 'application/json',
+          'X-Api-Request-Id': requestId,
+          'X-Api-Resource-Id': 'volc.bigasr.auc.v3',
+          'X-Signature': signature,
+        })}');
+      }
+      
       final response = await http.post(
-        Uri.parse('$baseUrl/submit'),
+        url,
         headers: {
           'Content-Type': 'application/json',
-          'X-Request-ID': requestId,
+          'X-Api-Request-Id': requestId,
+          'X-Api-Resource-Id': 'volc.bigasr.auc.v3',
           'X-Signature': signature,
         },
         body: jsonEncode(requestBody),
       );
+      
+      // Debug logging: Print response details
+      if (Get.isLogEnable) {
+        Get.log('ASR Submit Response Status: ${response.statusCode}');
+        Get.log('ASR Submit Response Body: ${response.body}');
+      }
       
       if (response.statusCode == 200) {
         final result = jsonDecode(response.body);
@@ -101,15 +125,40 @@ class VolcanoASRService {
       
       final signature = _generateSignature(requestBody);
       
+      // 发送请求 - 使用 appid 作为查询参数
+      final url = Uri.parse('$baseUrl/query').replace(queryParameters: {
+        'appid': appKey,
+      });
+      
+      // Debug logging: Print full URL with query parameters
+      if (Get.isLogEnable) {
+        Get.log('ASR Query URL: ${url.toString()}');
+        Get.log('ASR Query Headers: ${jsonEncode({
+          'Content-Type': 'application/json',
+          'X-Api-Request-Id': requestId,
+          'X-Api-Key': appKey,
+          'X-Api-Access-Key': accessKey,
+          'X-Signature': signature,
+        })}');
+        Get.log('ASR Query Body: ${jsonEncode(requestBody)}');
+      }
+      
       final response = await http.post(
-        Uri.parse('$baseUrl/query'),
+        url,
         headers: {
           'Content-Type': 'application/json',
-          'X-Request-ID': requestId,
+          'X-Api-Request-Id': requestId,
+          'X-Api-Resource-Id': 'volc.bigasr.auc.v3',
           'X-Signature': signature,
         },
         body: jsonEncode(requestBody),
       );
+      
+      // Debug logging: Print response details
+      if (Get.isLogEnable) {
+        Get.log('ASR Query Response Status: ${response.statusCode}');
+        Get.log('ASR Query Response Body: ${response.body}');
+      }
       
       if (response.statusCode == 200) {
         final result = jsonDecode(response.body);
@@ -119,7 +168,7 @@ class VolcanoASRService {
           throw Exception('Query failed: ${result['message']}');
         }
       } else {
-        throw Exception('HTTP error: ${response.statusCode}');
+        throw Exception('HTTP error: ${response.statusCode} - ${response.body}');
       }
     } catch (e) {
       if (Get.isLogEnable) {
