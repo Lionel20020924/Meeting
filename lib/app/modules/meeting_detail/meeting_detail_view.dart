@@ -535,15 +535,17 @@ class MeetingDetailView extends GetView<MeetingDetailController> {
                               ),
                             )
                           : SingleChildScrollView(
-                              child: Text(
-                                controller.highlightedTranscription.value.isEmpty
-                                    ? controller.transcription.value
-                                    : controller.highlightedTranscription.value,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  height: 1.6,
-                                ),
-                              ),
+                              child: controller.transcriptionSegments.isEmpty
+                                  ? Text(
+                                      controller.highlightedTranscription.value.isEmpty
+                                          ? controller.transcription.value
+                                          : controller.highlightedTranscription.value,
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        height: 1.6,
+                                      ),
+                                    )
+                                  : _buildSpeakerSeparatedTranscript(context),
                             ),
                     )),
                   ],
@@ -554,6 +556,129 @@ class MeetingDetailView extends GetView<MeetingDetailController> {
         );
       },
     );
+  }
+
+  Widget _buildSpeakerSeparatedTranscript(BuildContext context) {
+    // Group consecutive segments by speaker
+    final List<Map<String, dynamic>> speakerGroups = [];
+    String? currentSpeaker;
+    List<dynamic> currentGroup = [];
+    
+    for (final segment in controller.transcriptionSegments) {
+      final speakerId = segment['speakerId'] as String?;
+      
+      if (speakerId != currentSpeaker) {
+        if (currentGroup.isNotEmpty) {
+          speakerGroups.add({
+            'speakerId': currentSpeaker,
+            'segments': List.from(currentGroup),
+          });
+        }
+        currentSpeaker = speakerId;
+        currentGroup = [segment];
+      } else {
+        currentGroup.add(segment);
+      }
+    }
+    
+    // Add the last group
+    if (currentGroup.isNotEmpty) {
+      speakerGroups.add({
+        'speakerId': currentSpeaker,
+        'segments': currentGroup,
+      });
+    }
+    
+    // Build the UI
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: speakerGroups.expand((group) {
+        final speakerId = group['speakerId'] as String?;
+        final segments = group['segments'] as List<dynamic>;
+        // Format speaker label based on speaker ID
+        String speakerLabel;
+        if (speakerId == null) {
+          speakerLabel = 'Unknown Speaker';
+        } else {
+          // Try to parse speaker ID as a number and display as "Speaker 1", "Speaker 2", etc.
+          final speakerNumber = int.tryParse(speakerId.toString());
+          if (speakerNumber != null) {
+            speakerLabel = 'Speaker ${speakerNumber + 1}';
+          } else {
+            speakerLabel = 'Speaker $speakerId';
+          }
+        }
+        final speakerColor = _getSpeakerColor(speakerId);
+        
+        return [
+          // Speaker label
+          Container(
+            margin: const EdgeInsets.only(bottom: 8, top: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: speakerColor.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: speakerColor.withValues(alpha: 0.4),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.person,
+                  size: 16,
+                  color: speakerColor,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  speakerLabel,
+                  style: TextStyle(
+                    color: speakerColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Speaker's text
+          Container(
+            margin: const EdgeInsets.only(left: 24, bottom: 12),
+            child: Text(
+              segments.map((s) => s['text'] ?? '').join(' '),
+              style: const TextStyle(
+                fontSize: 16,
+                height: 1.6,
+              ),
+            ),
+          ),
+        ];
+      }).toList(),
+    );
+  }
+  
+  Color _getSpeakerColor(String? speakerId) {
+    if (speakerId == null) return Colors.grey;
+    
+    // Generate consistent colors based on speaker ID
+    final colors = [
+      Colors.blue,
+      Colors.green,
+      Colors.orange,
+      Colors.purple,
+      Colors.teal,
+      Colors.pink,
+      Colors.indigo,
+      Colors.amber,
+      Colors.cyan,
+      Colors.lime,
+    ];
+    
+    // Use speaker ID to get a consistent color
+    final index = speakerId.hashCode.abs() % colors.length;
+    return colors[index];
   }
 
   Widget _buildFloatingActionButtons(BuildContext context) {

@@ -115,6 +115,7 @@ class SummaryController extends GetxController {
       meetingData['summary'] = summary.value;
       meetingData['keyPoints'] = keyPoints.toList();
       meetingData['actionItems'] = actionItems.toList();
+      // Note: transcriptionSegments are already saved during transcription
       
       // Update in storage
       await StorageService.updateMeeting(meetingData);
@@ -223,24 +224,36 @@ class SummaryController extends GetxController {
         Get.log('Starting transcription with available service...');
       }
       
-      // Transcribe using Volcano Engine
-      final transcription = await TranscriptionService.transcribeAudioSimple(
+      // Transcribe using Volcano Engine with full result
+      final transcriptionResult = await TranscriptionService.transcribeAudio(
         audioData: audioData,
         language: 'zh',
       );
       
-      if (transcription.isEmpty) {
+      if (transcriptionResult.text.isEmpty) {
         throw Exception('Transcription returned empty result');
       }
       
-      transcript.value = transcription;
+      transcript.value = transcriptionResult.text;
       
-      // Update meeting data with transcription
-      meetingData['transcription'] = transcription;
+      // Update meeting data with transcription and segments
+      meetingData['transcription'] = transcriptionResult.text;
+      
+      // Convert segments to a format that can be stored
+      if (transcriptionResult.segments != null && transcriptionResult.segments!.isNotEmpty) {
+        meetingData['transcriptionSegments'] = transcriptionResult.segments!.map((segment) => {
+          'text': segment.text,
+          'startTime': segment.startTime,
+          'endTime': segment.endTime,
+          'speakerId': segment.speakerId,
+          'confidence': segment.confidence,
+        }).toList();
+      }
+      
       await StorageService.updateMeeting(meetingData);
       
       if (Get.isLogEnable) {
-        Get.log('Transcription successful: ${transcription.substring(0, transcription.length > 100 ? 100 : transcription.length)}...');
+        Get.log('Transcription successful: ${transcriptionResult.text.substring(0, transcriptionResult.text.length > 100 ? 100 : transcriptionResult.text.length)}...');
       }
       
     } catch (e) {

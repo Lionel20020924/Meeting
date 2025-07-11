@@ -16,6 +16,7 @@ class MeetingDetailController extends GetxController {
   final RxBool isPlaying = false.obs;
   final RxBool isTranscribing = false.obs;
   final RxString transcription = ''.obs;
+  final RxList<dynamic> transcriptionSegments = <dynamic>[].obs;
   final RxString errorMessage = ''.obs;
   final Rx<Duration> position = Duration.zero.obs;
   final Rx<Duration> duration = Duration.zero.obs;
@@ -38,6 +39,11 @@ class MeetingDetailController extends GetxController {
     // Initialize transcription if it exists
     if (meeting['transcription'] != null && meeting['transcription'].toString().isNotEmpty) {
       transcription.value = meeting['transcription'];
+    }
+    
+    // Initialize transcription segments if they exist
+    if (meeting['transcriptionSegments'] != null && meeting['transcriptionSegments'] is List) {
+      transcriptionSegments.value = meeting['transcriptionSegments'];
     }
     
     // Setup audio player listeners
