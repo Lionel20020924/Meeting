@@ -11,6 +11,7 @@ import '../../routes/app_pages.dart';
 import '../../services/openai_service.dart';
 import '../../services/transcription_service.dart';
 import '../../services/storage_service.dart';
+import '../../services/profile_service.dart';
 
 class SummaryController extends GetxController {
   late Map<String, dynamic> meetingData;
@@ -19,6 +20,7 @@ class SummaryController extends GetxController {
   final isTranscribing = false.obs;
   final isGeneratingSummary = false.obs;
   final transcript = ''.obs;
+  final formattedTranscript = ''.obs;
   final keyPoints = <String>[].obs;
   final actionItems = <String>[].obs;
   final summary = ''.obs;
@@ -112,6 +114,7 @@ class SummaryController extends GetxController {
     try {
       // Update meeting data with latest transcript and summary
       meetingData['transcription'] = transcript.value;
+      meetingData['formattedTranscription'] = formattedTranscript.value;
       meetingData['summary'] = summary.value;
       meetingData['keyPoints'] = keyPoints.toList();
       meetingData['actionItems'] = actionItems.toList();
@@ -132,6 +135,7 @@ class SummaryController extends GetxController {
       if (meetingData['transcription'] != null && meetingData['transcription'].toString().isNotEmpty) {
         // Use existing transcription
         transcript.value = meetingData['transcription'].toString();
+        formattedTranscript.value = meetingData['formattedTranscription']?.toString() ?? transcript.value;
         
         // Check if we already have summary data
         if (meetingData['summary'] != null && meetingData['summary'].toString().isNotEmpty) {
@@ -224,10 +228,19 @@ class SummaryController extends GetxController {
         Get.log('Starting transcription with available service...');
       }
       
+      // Load user profile to get voice separation preference
+      final profile = await ProfileService.loadProfile();
+      final enableVoiceSeparation = profile['meetingPreferences']?['enableVoiceSeparation'] ?? false;
+      
+      if (Get.isLogEnable) {
+        Get.log('Voice separation enabled: $enableVoiceSeparation');
+      }
+      
       // Transcribe using Volcano Engine with full result
       final transcriptionResult = await TranscriptionService.transcribeAudio(
         audioData: audioData,
         language: 'zh',
+        enableVoiceSeparation: enableVoiceSeparation,
       );
       
       if (transcriptionResult.text.isEmpty) {
@@ -235,9 +248,11 @@ class SummaryController extends GetxController {
       }
       
       transcript.value = transcriptionResult.text;
+      formattedTranscript.value = transcriptionResult.formattedText ?? transcriptionResult.text;
       
       // Update meeting data with transcription and segments
       meetingData['transcription'] = transcriptionResult.text;
+      meetingData['formattedTranscription'] = transcriptionResult.formattedText;
       
       // Convert segments to a format that can be stored
       if (transcriptionResult.segments != null && transcriptionResult.segments!.isNotEmpty) {

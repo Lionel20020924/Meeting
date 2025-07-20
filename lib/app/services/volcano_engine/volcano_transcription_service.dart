@@ -4,17 +4,20 @@ import '../audio_upload_service.dart';
 import 'asr_service.dart';
 import '../doubao_ai_service.dart';
 import '../profile_service.dart';
+import 'voice_separation_service.dart';
 import 'package:get/get.dart';
 
 /// 转录结果类
 class VolcanoTranscriptionResult {
   final String text;
+  final String? formattedText;
   final String? language;
   final List<VolcanoTranscriptionSegment>? segments;
   final MeetingSummary? summary;
 
   VolcanoTranscriptionResult({
     required this.text,
+    this.formattedText,
     this.language,
     this.segments,
     this.summary,
@@ -63,12 +66,18 @@ class VolcanoTranscriptionService {
            dotenv.env['TOS_SECRET_ACCESS_KEY']?.isNotEmpty == true;
   }
 
+  /// 上传音频文件到TOS并返回URL
+  Future<String> uploadAudioFile(File audioFile) async {
+    return await _uploadService.uploadAudioFile(audioFile);
+  }
+
   /// 执行音频转录
   Future<VolcanoTranscriptionResult> transcribe(
     File audioFile, {
     bool generateSummary = true,
     String? meetingTitle,
     DateTime? meetingDate,
+    List<SeparatedTrack>? separatedTracks,
   }) async {
     try {
       // 1. 上传音频文件到 TOS
@@ -90,42 +99,106 @@ class VolcanoTranscriptionService {
         Get.log('Speaker diarization enabled: $enableSpeakerDiarization');
       }
       
-      // 3. 提交 ASR 任务
-      final taskId = await _asrService.submitASRTask(
-        audioUrl: audioUrl,
-        language: 'zh-CN',
-        enableDiarization: enableSpeakerDiarization,
-        enableIntelligentSegment: true,
-        enablePunctuation: true,
-        enableTimestamp: true,
-      );
+      // 3. 处理分离的音轨或原始音频
+      String taskId;
+      List<VolcanoTranscriptionSegment> allSegments = [];
+      
+      if (separatedTracks != null && separatedTracks.isNotEmpty) {
+        // 如果有分离的音轨，分别转录每个音轨
+        if (Get.isLogEnable) {
+          Get.log('Transcribing ${separatedTracks.length} separated tracks...');
+        }
+        
+        for (int i = 0; i < separatedTracks.length; i++) {
+          final track = separatedTracks[i];
+          if (Get.isLogEnable) {
+            Get.log('Processing track ${i + 1}: ${track.friendlyName}');
+          }
+          
+          // 提交每个音轨的ASR任务
+          final trackTaskId = await _asrService.submitASRTask(
+            audioUrl: track.downloadUrl,
+            language: 'zh-CN',
+            enableDiarization: false, // 分离后的音轨不需要再做说话人分离
+            enableIntelligentSegment: true,
+            enablePunctuation: true,
+            enableTimestamp: true,
+          );
+          
+          // 等待结果
+          final trackResult = await _asrService.waitForResult(
+            trackTaskId,
+            timeout: const Duration(minutes: 5),
+          );
+          
+          // 转换并标记说话人ID
+          final trackSegments = _convertSegments(
+            trackResult.segments,
+            speakerIdOverride: track.trackType,
+          );
+          allSegments.addAll(trackSegments);
+        }
+        
+        // 按时间排序所有片段
+        allSegments.sort((a, b) => a.startTime.compareTo(b.startTime));
+        
+        // 使用第一个任务ID作为主任务ID
+        taskId = separatedTracks.first.trackId;
+      } else {
+        // 没有分离音轨，使用原始音频
+        taskId = await _asrService.submitASRTask(
+          audioUrl: audioUrl,
+          language: 'zh-CN',
+          enableDiarization: enableSpeakerDiarization,
+          enableIntelligentSegment: true,
+          enablePunctuation: true,
+          enableTimestamp: true,
+        );
+      }
       
       if (Get.isLogEnable) {
         Get.log('ASR task submitted: $taskId');
       }
       
-      // 4. 等待并获取结果
-      final asrResult = await _asrService.waitForResult(
-        taskId,
-        timeout: const Duration(minutes: 10),
-      );
-      
-      if (Get.isLogEnable) {
-        Get.log('ASR completed successfully');
+      // 4. 如果没有分离音轨，等待原始音频的ASR结果
+      if (separatedTracks == null || separatedTracks.isEmpty) {
+        final asrResult = await _asrService.waitForResult(
+          taskId,
+          timeout: const Duration(minutes: 10),
+        );
+        
+        if (Get.isLogEnable) {
+          Get.log('ASR completed successfully');
+        }
+        
+        // 转换结果格式
+        allSegments = _convertSegments(asrResult.segments);
       }
       
-      // 5. 转换结果格式
-      final segments = _convertSegments(asrResult.segments);
-      
-      // 首先尝试从metadata中获取转录文本
+      // 5. 处理转录文本
       String fullText = '';
-      if (asrResult.metadata != null && asrResult.metadata!['transcript_text'] != null) {
-        fullText = asrResult.metadata!['transcript_text'] as String;
-      }
+      String formattedText = '';
       
-      // 如果metadata中没有文本，从segments拼接
-      if (fullText.isEmpty && segments.isNotEmpty) {
-        fullText = segments.map((s) => s.text).join(' ');
+      // 从segments拼接完整文本
+      if (allSegments.isNotEmpty) {
+        // 纯文本版本（用于AI摘要等）
+        fullText = allSegments.map((s) => s.text).join(' ');
+        
+        // 格式化文本版本（带说话人标识）
+        String? currentSpeaker;
+        List<String> formattedLines = [];
+        
+        for (var segment in allSegments) {
+          final speakerId = segment.speakerId;
+          if (speakerId != null && speakerId != currentSpeaker) {
+            // 说话人改变，添加新的说话人标识
+            currentSpeaker = speakerId;
+            formattedLines.add('\n${_formatSpeakerName(speakerId)}：');
+          }
+          formattedLines.add(segment.text);
+        }
+        
+        formattedText = formattedLines.join(' ').trim();
       }
       
       if (Get.isLogEnable) {
@@ -142,7 +215,7 @@ class VolcanoTranscriptionService {
           
           summary = await DoubaoAIService.generateMeetingSummary(
             transcriptText: fullText,
-            segments: segments.map((s) => TranscriptSegment(
+            segments: allSegments.map((s) => TranscriptSegment(
               text: s.text,
               speakerId: s.speakerId,
               startTime: s.startTime,
@@ -172,8 +245,9 @@ class VolcanoTranscriptionService {
       
       return VolcanoTranscriptionResult(
         text: fullText,
+        formattedText: formattedText.isNotEmpty ? formattedText : null,
         language: 'zh-CN',
-        segments: segments,
+        segments: allSegments,
         summary: summary,
       );
       
@@ -186,7 +260,10 @@ class VolcanoTranscriptionService {
   }
 
   /// 转换 ASR 片段格式
-  List<VolcanoTranscriptionSegment> _convertSegments(List<ASRSegment>? asrSegments) {
+  List<VolcanoTranscriptionSegment> _convertSegments(
+    List<ASRSegment>? asrSegments, {
+    String? speakerIdOverride,
+  }) {
     if (asrSegments == null || asrSegments.isEmpty) {
       return [];
     }
@@ -195,9 +272,36 @@ class VolcanoTranscriptionService {
       text: segment.text,
       startTime: segment.startTime,
       endTime: segment.endTime,
-      speakerId: segment.speakerId,
+      speakerId: speakerIdOverride ?? segment.speakerId,
       confidence: segment.confidence,
     )).toList();
+  }
+  
+  /// 格式化说话人名称
+  String _formatSpeakerName(String speakerId) {
+    // 检查是否是数字格式的speaker ID（如 "1", "2"）
+    final numMatch = RegExp(r'^\d+$').firstMatch(speakerId);
+    if (numMatch != null) {
+      return '说话人 $speakerId';
+    }
+    
+    // 检查是否是speaker_开头的格式（如 "speaker_1", "speaker_2"）
+    if (speakerId.startsWith('speaker_')) {
+      final num = speakerId.replaceAll('speaker_', '');
+      return '说话人 $num';
+    }
+    
+    // 检查是否是特殊类型
+    switch (speakerId.toLowerCase()) {
+      case 'vocal':
+        return '人声';
+      case 'accompaniment':
+        return '伴奏';
+      case 'background':
+        return '背景音';
+      default:
+        return speakerId; // 返回原始ID
+    }
   }
   
   /// 清理资源

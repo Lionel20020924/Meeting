@@ -304,9 +304,9 @@ class SummaryView extends GetView<SummaryController> {
                                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                                 child: SingleChildScrollView(
                                   child: Text(
-                                    controller.transcript.value.isEmpty
+                                    controller.formattedTranscript.value.isEmpty
                                         ? 'No transcription available'
-                                        : controller.transcript.value,
+                                        : controller.formattedTranscript.value,
                                     style: const TextStyle(
                                       fontSize: 14,
                                       height: 1.5,

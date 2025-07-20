@@ -1,9 +1,12 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:record/record.dart';
 
 import '../../routes/app_pages.dart';
 import '../../services/profile_service.dart';
 import '../../services/storage_service.dart';
+import '../../utils/voice_separation_test.dart';
 
 class ProfileController extends GetxController {
   // Profile data
@@ -69,15 +72,32 @@ class ProfileController extends GetxController {
       isLoading.value = true;
       final profile = await ProfileService.loadProfile();
       
-      // Ensure meetingPreferences exists
+      // Ensure meetingPreferences exists with all default values
       if (profile['meetingPreferences'] == null) {
-        profile['meetingPreferences'] = {
-          'defaultDuration': 30,
-          'autoTranscribe': true,
-          'autoSummarize': true,
-          'enableSpeakerDiarization': true,
-          'language': 'zh',
-        };
+        profile['meetingPreferences'] = {};
+      }
+      
+      // Ensure all preference keys exist with defaults
+      final defaultPreferences = {
+        'defaultDuration': 30,
+        'autoTranscribe': true,
+        'autoSummarize': true,
+        'enableSpeakerDiarization': true,
+        'enableVoiceSeparation': false,
+        'language': 'zh',
+      };
+      
+      // Merge defaults with loaded preferences
+      for (final key in defaultPreferences.keys) {
+        if (!profile['meetingPreferences'].containsKey(key)) {
+          profile['meetingPreferences'][key] = defaultPreferences[key];
+        }
+      }
+      
+      // Debug logging
+      if (Get.isLogEnable) {
+        Get.log('Loaded meetingPreferences: ${profile['meetingPreferences']}');
+        Get.log('enableVoiceSeparation: ${profile['meetingPreferences']['enableVoiceSeparation']}');
       }
       
       profileData.value = profile;
@@ -233,27 +253,43 @@ class ProfileController extends GetxController {
   
   void updatePreference(String key, dynamic value) async {
     try {
+      // Always log preference updates for debugging
+      Get.log('ProfileController: Updating preference: $key = $value', isError: false);
+      
       // Ensure meetingPreferences exists
       if (profileData['meetingPreferences'] == null) {
         profileData['meetingPreferences'] = {};
       }
       
-      await ProfileService.updateProfileField('meetingPreferences.$key', value);
-      profileData['meetingPreferences'][key] = value;
-      profileData.refresh();
+      // Update profile service first
+      final success = await ProfileService.updateProfileField('meetingPreferences.$key', value);
       
-      Get.snackbar(
-        'Success',
-        'Preference updated',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.green,
-        colorText: Colors.white,
-        duration: const Duration(seconds: 1),
-      );
-    } catch (e) {
-      if (Get.isLogEnable) {
-        Get.log('Error updating preference: $e');
+      if (success) {
+        // Update local data only if save was successful
+        profileData['meetingPreferences'][key] = value;
+        
+        // Force reactive update
+        profileData.value = Map<String, dynamic>.from(profileData);
+        
+        Get.log('ProfileController: Preference updated successfully: $key = $value', isError: false);
+        Get.log('ProfileController: Current meetingPreferences: ${profileData['meetingPreferences']}', isError: false);
+        
+        // Reload profile to ensure consistency
+        await loadProfile();
+        
+        Get.snackbar(
+          'Success',
+          'Preference updated',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+          duration: const Duration(seconds: 1),
+        );
+      } else {
+        throw Exception('Failed to save preference');
       }
+    } catch (e) {
+      Get.log('ProfileController: Error updating preference: $e', isError: true);
       Get.snackbar(
         'Error',
         'Failed to update preference',
@@ -359,6 +395,155 @@ class ProfileController extends GetxController {
   String formatDuration(int seconds) {
     final minutes = seconds ~/ 60;
     return '$minutes min';
+  }
+  
+  /// Test voice separation functionality
+  Future<void> testVoiceSeparation() async {
+    try {
+      // Show dialog to record test audio
+      final shouldRecord = await Get.dialog<bool>(
+        AlertDialog(
+          title: const Text('Voice Separation Test'),
+          content: const Text(
+            'This test will:\n'
+            '1. Record a 10-second audio sample\n'
+            '2. Upload it to the cloud\n'
+            '3. Process it with voice separation\n'
+            '4. Show you the results\n\n'
+            'Please speak with multiple people or play audio with multiple speakers during recording.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Get.back(result: false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Get.back(result: true),
+              child: const Text('Start Test'),
+            ),
+          ],
+        ),
+      );
+      
+      if (shouldRecord != true) return;
+      
+      // Record audio
+      final audioData = await _recordTestAudio();
+      if (audioData == null) return;
+      
+      // Run voice separation test
+      final result = await VoiceSeparationTest.runTest(
+        audioData: audioData,
+        showDialog: true,
+      );
+      
+      // Show results
+      VoiceSeparationTest.showResults(result);
+      
+    } catch (e) {
+      Get.snackbar(
+        'Test Failed',
+        'Error during voice separation test: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+  }
+  
+  /// Record test audio for voice separation
+  Future<List<int>?> _recordTestAudio() async {
+    final recorder = AudioRecorder();
+    
+    try {
+      // Check permission
+      if (!await recorder.hasPermission()) {
+        Get.snackbar(
+          'Permission Required',
+          'Microphone permission is required for the test',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.orange,
+          colorText: Colors.white,
+        );
+        return null;
+      }
+      
+      // Show recording dialog
+      int secondsElapsed = 0;
+      
+      Get.dialog(
+        PopScope(
+          canPop: false,
+          child: AlertDialog(
+            title: const Text('Recording Test Audio'),
+            content: StreamBuilder<int>(
+              stream: Stream.periodic(const Duration(seconds: 1), (i) => i),
+              builder: (context, snapshot) {
+                secondsElapsed = snapshot.data ?? 0;
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.mic, size: 48, color: Colors.red),
+                    const SizedBox(height: 16),
+                    Text('Recording... ${10 - secondsElapsed}s remaining'),
+                    const SizedBox(height: 8),
+                    LinearProgressIndicator(
+                      value: secondsElapsed / 10,
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ),
+        barrierDismissible: false,
+      );
+      
+      // Start recording
+      final tempDir = await Directory.systemTemp.createTemp('voice_test');
+      final audioPath = '${tempDir.path}/test_audio.wav';
+      
+      await recorder.start(
+        const RecordConfig(
+          encoder: AudioEncoder.wav,
+          sampleRate: 16000,
+          numChannels: 1,
+        ),
+        path: audioPath,
+      );
+      
+      // Record for 10 seconds
+      await Future.delayed(const Duration(seconds: 10));
+      
+      // Stop recording
+      await recorder.stop();
+      Get.back(); // Close recording dialog
+      
+      // Read audio file
+      final audioFile = File(audioPath);
+      if (!audioFile.existsSync()) {
+        throw Exception('Recording failed - no audio file created');
+      }
+      
+      final audioData = await audioFile.readAsBytes();
+      
+      // Clean up
+      try {
+        await audioFile.delete();
+        await tempDir.delete();
+      } catch (_) {}
+      
+      return audioData;
+      
+    } catch (e) {
+      if (Get.isDialogOpen ?? false) {
+        Get.back();
+      }
+      Get.log('Error recording test audio: $e');
+      rethrow;
+    } finally {
+      recorder.dispose();
+    }
   }
   
   // Validation methods

@@ -3,17 +3,23 @@ import 'dart:io';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
+import 'package:get/get.dart';
 import 'volcano_engine/volcano_transcription_service.dart';
+import 'volcano_engine/voice_separation_service.dart';
 
 class TranscriptionResult {
   final String text;
+  final String? formattedText;
   final List<VolcanoTranscriptionSegment>? segments;
   final String? detectedLanguage;
+  final List<SeparatedTrack>? separatedTracks;
 
   TranscriptionResult({
     required this.text,
+    this.formattedText,
     this.segments,
     this.detectedLanguage,
+    this.separatedTracks,
   });
 }
 
@@ -22,6 +28,9 @@ class TranscriptionService {
   static Future<TranscriptionResult> transcribeAudio({
     required Uint8List audioData,
     String? language = 'zh',
+    bool enableVoiceSeparation = false,
+    String separationType = 'speaker',
+    int? maxSpeakers,
   }) async {
     final service = VolcanoTranscriptionService();
     
@@ -36,13 +45,55 @@ class TranscriptionService {
     await tempFile.writeAsBytes(audioData);
     
     try {
-      final result = await service.transcribe(tempFile);
+      List<SeparatedTrack>? separatedTracks;
+      
+      // Perform voice separation if enabled
+      if (enableVoiceSeparation) {
+        try {
+          final separationService = VoiceSeparationService(
+            appKey: dotenv.env['VOLCANO_APP_KEY'] ?? '',
+            accessKey: dotenv.env['VOLCANO_ACCESS_KEY'] ?? '',
+          );
+          
+          // Upload audio file first (reuse the same upload as transcription)
+          final audioUrl = await service.uploadAudioFile(tempFile);
+          
+          // Submit separation task
+          final taskId = await separationService.submitSeparationTask(
+            audioUrl: audioUrl,
+            separationType: separationType,
+            maxSpeakers: maxSpeakers,
+            enableDenoising: true,
+          );
+          
+          // Wait for separation result
+          final separationResult = await separationService.waitForResult(
+            taskId,
+            timeout: const Duration(minutes: 5),
+          );
+          
+          separatedTracks = separationResult.tracks;
+        } catch (e) {
+          // Voice separation failed, continue with normal transcription
+          if (Get.isLogEnable) {
+            Get.log('Voice separation failed, continuing with normal transcription: $e');
+          }
+        }
+      }
+      
+      // Transcribe with or without separation
+      final result = await service.transcribe(
+        tempFile,
+        separatedTracks: separatedTracks,
+      );
       
       // Convert to compatible format
       return TranscriptionResult(
         text: result.text,
+        formattedText: result.formattedText,
         segments: result.segments,
         detectedLanguage: result.language ?? language,
+        separatedTracks: separatedTracks,
       );
     } finally {
       // Clean up temporary file

@@ -8,6 +8,7 @@ import 'package:audioplayers/audioplayers.dart';
 import '../../routes/app_pages.dart';
 import '../../services/transcription_service.dart';
 import '../../services/storage_service.dart';
+import '../../services/profile_service.dart';
 
 class MeetingDetailController extends GetxController {
   late Map<String, dynamic> meeting;
@@ -16,6 +17,7 @@ class MeetingDetailController extends GetxController {
   final RxBool isPlaying = false.obs;
   final RxBool isTranscribing = false.obs;
   final RxString transcription = ''.obs;
+  final RxString formattedTranscription = ''.obs;
   final RxList<dynamic> transcriptionSegments = <dynamic>[].obs;
   final RxString errorMessage = ''.obs;
   final Rx<Duration> position = Duration.zero.obs;
@@ -39,6 +41,7 @@ class MeetingDetailController extends GetxController {
     // Initialize transcription if it exists
     if (meeting['transcription'] != null && meeting['transcription'].toString().isNotEmpty) {
       transcription.value = meeting['transcription'];
+      formattedTranscription.value = meeting['formattedTranscription']?.toString() ?? meeting['transcription'];
     }
     
     // Initialize transcription segments if they exist
@@ -137,16 +140,39 @@ class MeetingDetailController extends GetxController {
       // Read audio file
       final audioData = await audioFile.readAsBytes();
       
-      // Transcribe using available service (WhisperX preferred, fallback to OpenAI)
-      final result = await TranscriptionService.transcribeAudioSimple(
+      // Load user profile to get voice separation preference
+      final profile = await ProfileService.loadProfile();
+      final enableVoiceSeparation = profile['meetingPreferences']?['enableVoiceSeparation'] ?? false;
+      
+      if (Get.isLogEnable) {
+        Get.log('Voice separation enabled: $enableVoiceSeparation');
+      }
+      
+      // Transcribe using available service with voice separation if enabled
+      final transcriptionResult = await TranscriptionService.transcribeAudio(
         audioData: audioData,
         language: 'zh',
+        enableVoiceSeparation: enableVoiceSeparation,
       );
 
-      transcription.value = result;
+      transcription.value = transcriptionResult.text;
+      formattedTranscription.value = transcriptionResult.formattedText ?? transcriptionResult.text;
+      
+      // Store transcription segments if available
+      if (transcriptionResult.segments != null && transcriptionResult.segments!.isNotEmpty) {
+        transcriptionSegments.value = transcriptionResult.segments!.map((segment) => {
+          'text': segment.text,
+          'startTime': segment.startTime,
+          'endTime': segment.endTime,
+          'speakerId': segment.speakerId,
+          'confidence': segment.confidence,
+        }).toList();
+        meeting['transcriptionSegments'] = transcriptionSegments.toList();
+      }
       
       // Update meeting data with transcription
-      meeting['transcription'] = result;
+      meeting['transcription'] = transcriptionResult.text;
+      meeting['formattedTranscription'] = transcriptionResult.formattedText;
       await StorageService.updateMeeting(meeting);
 
     } catch (e) {

@@ -10,6 +10,7 @@ import 'package:path_provider/path_provider.dart';
 import '../../routes/app_pages.dart';
 import '../../services/storage_service.dart';
 import '../../services/transcription_service.dart';
+import '../../services/profile_service.dart';
 
 class RecordController extends GetxController with GetSingleTickerProviderStateMixin {
   final titleController = TextEditingController();
@@ -574,15 +575,22 @@ class RecordController extends GetxController with GetSingleTickerProviderStateM
       // Read current recording
       final audioData = await audioFile.readAsBytes();
       
-      // Transcribe using available transcription service (WhisperX preferred, fallback to OpenAI)
-      final transcription = await TranscriptionService.transcribeAudioSimple(
+      // Load user profile to get voice separation preference
+      final profile = await ProfileService.loadProfile();
+      final enableVoiceSeparation = profile['meetingPreferences']?['enableVoiceSeparation'] ?? false;
+      
+      // Transcribe using available transcription service with voice separation if enabled
+      // Note: For real-time transcription, we may not want to use voice separation
+      // as it requires more processing time. Only use it if explicitly enabled.
+      final transcriptionResult = await TranscriptionService.transcribeAudio(
         audioData: audioData,
         language: 'zh',
+        enableVoiceSeparation: enableVoiceSeparation,
       );
       
       // Update transcription (replace with new full transcription)
-      if (transcription.isNotEmpty) {
-        transcribedText.value = transcription;
+      if (transcriptionResult.text.isNotEmpty) {
+        transcribedText.value = transcriptionResult.text;
       }
       
     } catch (e) {

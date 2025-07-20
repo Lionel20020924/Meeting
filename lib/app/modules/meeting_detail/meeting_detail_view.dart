@@ -538,7 +538,7 @@ class MeetingDetailView extends GetView<MeetingDetailController> {
                               child: controller.transcriptionSegments.isEmpty
                                   ? Text(
                                       controller.highlightedTranscription.value.isEmpty
-                                          ? controller.transcription.value
+                                          ? controller.formattedTranscription.value
                                           : controller.highlightedTranscription.value,
                                       style: const TextStyle(
                                         fontSize: 16,

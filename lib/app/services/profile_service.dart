@@ -5,6 +5,19 @@ import 'package:path_provider/path_provider.dart';
 
 class ProfileService {
   static const String _profileFile = 'user_profile.json';
+  
+  // Helper method to create a deep mutable copy of a map
+  static dynamic _deepCopy(dynamic item) {
+    if (item is Map) {
+      return Map<String, dynamic>.from(
+        item.map((key, value) => MapEntry(key.toString(), _deepCopy(value)))
+      );
+    } else if (item is List) {
+      return item.map((e) => _deepCopy(e)).toList();
+    } else {
+      return item;
+    }
+  }
 
   // Default profile data
   static const Map<String, dynamic> defaultProfile = {
@@ -20,6 +33,7 @@ class ProfileService {
       'autoTranscribe': true,
       'autoSummarize': true,
       'enableSpeakerDiarization': true,
+      'enableVoiceSeparation': false,
       'language': 'zh',
     },
   };
@@ -47,13 +61,17 @@ class ProfileService {
       if (await file.exists()) {
         final contents = await file.readAsString();
         if (contents.isNotEmpty) {
-          return Map<String, dynamic>.from(jsonDecode(contents));
+          // Use deep copy to ensure all nested maps are mutable
+          final decodedData = jsonDecode(contents);
+          return _deepCopy(decodedData) as Map<String, dynamic>;
         }
       }
       
-      return Map<String, dynamic>.from(defaultProfile);
+      // Return a deep copy of default profile to ensure mutability
+      return _deepCopy(defaultProfile) as Map<String, dynamic>;
     } catch (e) {
-      return Map<String, dynamic>.from(defaultProfile);
+      // Return a deep copy of default profile on error
+      return _deepCopy(defaultProfile) as Map<String, dynamic>;
     }
   }
 
@@ -63,8 +81,17 @@ class ProfileService {
       final file = await _profileFilePath;
       final profileString = jsonEncode(profile);
       await file.writeAsString(profileString);
+      
+      if (Get.isLogEnable) {
+        Get.log('ProfileService.saveProfile: Successfully saved profile');
+        Get.log('Saved data: $profileString');
+      }
+      
       return true;
     } catch (e) {
+      if (Get.isLogEnable) {
+        Get.log('ProfileService.saveProfile: Error saving profile: $e');
+      }
       return false;
     }
   }
@@ -72,25 +99,43 @@ class ProfileService {
   // Update specific field
   static Future<bool> updateProfileField(String field, dynamic value) async {
     try {
+      if (Get.isLogEnable) {
+        Get.log('ProfileService.updateProfileField: $field = $value');
+      }
+      
       final profile = await loadProfile();
       
       // Handle nested fields (e.g., 'meetingPreferences.defaultDuration')
       if (field.contains('.')) {
         final parts = field.split('.');
         Map<String, dynamic> current = profile;
+        
         for (int i = 0; i < parts.length - 1; i++) {
           if (current[parts[i]] == null) {
-            current[parts[i]] = {};
+            current[parts[i]] = <String, dynamic>{};
+          } else if (current[parts[i]] is! Map<String, dynamic>) {
+            // If the field exists but is not a map, we need to convert it
+            current[parts[i]] = <String, dynamic>{};
+          } else {
+            // Ensure the nested map is mutable
+            current[parts[i]] = Map<String, dynamic>.from(current[parts[i]] as Map);
           }
-          current = current[parts[i]];
+          current = current[parts[i]] as Map<String, dynamic>;
         }
         current[parts.last] = value;
       } else {
         profile[field] = value;
       }
       
+      if (Get.isLogEnable) {
+        Get.log('Updated profile: $profile');
+      }
+      
       return await saveProfile(profile);
     } catch (e) {
+      if (Get.isLogEnable) {
+        Get.log('Error in updateProfileField: $e');
+      }
       return false;
     }
   }

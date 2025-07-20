@@ -456,6 +456,35 @@ class ProfileView extends GetView<ProfileController> {
                                       controller.updatePreference('enableSpeakerDiarization', value);
                                     },
                                   )),
+                                  Container(
+                                    height: 0.5,
+                                    margin: const EdgeInsets.symmetric(horizontal: 16),
+                                    color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
+                                  ),
+                                  Obx(() => _buildMinimalSwitchTile(
+                                    context,
+                                    title: 'Voice Separation',
+                                    value: controller.profileData['meetingPreferences']?['enableVoiceSeparation'] ?? false,
+                                    onChanged: controller.isEditing.value ? null : (value) {
+                                      controller.updatePreference('enableVoiceSeparation', value);
+                                    },
+                                  )),
+                                  // Voice Separation Test Button
+                                  Obx(() => controller.profileData['meetingPreferences']?['enableVoiceSeparation'] == true
+                                    ? Container(
+                                        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                        child: TextButton.icon(
+                                          onPressed: controller.testVoiceSeparation,
+                                          icon: const Icon(Icons.science_outlined, size: 18),
+                                          label: const Text('Test Voice Separation'),
+                                          style: TextButton.styleFrom(
+                                            foregroundColor: Theme.of(context).colorScheme.primary,
+                                            textStyle: const TextStyle(fontSize: 14),
+                                          ),
+                                        ),
+                                      )
+                                    : const SizedBox.shrink(),
+                                  ),
                                 ],
                               ),
                             ),
