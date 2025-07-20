@@ -14,7 +14,7 @@ class ProfileView extends GetView<ProfileController> {
         slivers: [
           // Minimalist App Bar
           SliverAppBar(
-            expandedHeight: 260,
+            expandedHeight: 360,
             floating: false,
             pinned: true,
             backgroundColor: Colors.transparent,
@@ -35,25 +35,29 @@ class ProfileView extends GetView<ProfileController> {
                   children: [
                     // Subtle pattern overlay
                     Positioned.fill(
-                      child: CustomPaint(
-                        painter: _MinimalPatternPainter(
-                          color: Colors.white.withValues(alpha: 0.05),
+                      child: RepaintBoundary(
+                        child: ClipRect(
+                          child: CustomPaint(
+                            painter: _MinimalPatternPainter(
+                              color: Colors.white.withValues(alpha: 0.05),
+                            ),
+                            size: Size.infinite,
+                          ),
                         ),
-                        size: Size.infinite,
                       ),
                     ),
                     // Content
                     SafeArea(
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+                        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 20),
                             // Minimalist Avatar
                             Container(
-                              width: 90,
-                              height: 90,
+                              width: 80,
+                              height: 80,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 color: Colors.white,
@@ -68,20 +72,25 @@ class ProfileView extends GetView<ProfileController> {
                               child: Center(
                                 child: Icon(
                                   Icons.mic_rounded,
-                                  size: 42,
+                                  size: 38,
                                   color: Theme.of(context).colorScheme.primary,
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 20),
+                            const SizedBox(height: 12),
                             // User Display
-                            const Text(
-                              'Meeting Professional',
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
-                                letterSpacing: -0.5,
+                            Flexible(
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: const Text(
+                                  'Meeting Professional',
+                                  style: TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                    letterSpacing: -0.5,
+                                  ),
+                                ),
                               ),
                             ),
                             const SizedBox(height: 4),
@@ -94,42 +103,50 @@ class ProfileView extends GetView<ProfileController> {
                               child: const Text(
                                 'Premium User',
                                 style: TextStyle(
-                                  fontSize: 14,
+                                  fontSize: 13,
                                   color: Colors.white,
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 24),
+                            const SizedBox(height: 16),
                             // Minimalist Stats
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                _buildMinimalStat(
-                                  value: controller.totalMeetings.value.toString(),
-                                  label: 'Meetings',
-                                ),
-                                Container(
-                                  height: 30,
-                                  width: 1,
-                                  color: Colors.white.withValues(alpha: 0.2),
-                                  margin: const EdgeInsets.symmetric(horizontal: 24),
-                                ),
-                                _buildMinimalStat(
-                                  value: _formatTotalHours(controller.averageDuration.value * controller.totalMeetings.value),
-                                  label: 'Total Time',
-                                ),
-                                Container(
-                                  height: 30,
-                                  width: 1,
-                                  color: Colors.white.withValues(alpha: 0.2),
-                                  margin: const EdgeInsets.symmetric(horizontal: 24),
-                                ),
-                                _buildMinimalStat(
-                                  value: controller.weeklyMeetings.value.toString(),
-                                  label: 'This Week',
-                                ),
-                              ],
+                            Flexible(
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Flexible(
+                                    child: _buildMinimalStat(
+                                      value: controller.totalMeetings.value.toString(),
+                                      label: 'Meetings',
+                                    ),
+                                  ),
+                                  Container(
+                                    height: 24,
+                                    width: 1,
+                                    color: Colors.white.withValues(alpha: 0.2),
+                                    margin: const EdgeInsets.symmetric(horizontal: 12),
+                                  ),
+                                  Flexible(
+                                    child: _buildMinimalStat(
+                                      value: _formatTotalHours(controller.averageDuration.value * controller.totalMeetings.value),
+                                      label: 'Total Time',
+                                    ),
+                                  ),
+                                  Container(
+                                    height: 24,
+                                    width: 1,
+                                    color: Colors.white.withValues(alpha: 0.2),
+                                    margin: const EdgeInsets.symmetric(horizontal: 12),
+                                  ),
+                                  Flexible(
+                                    child: _buildMinimalStat(
+                                      value: controller.weeklyMeetings.value.toString(),
+                                      label: 'This Week',
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ],
                         ),
@@ -579,21 +596,28 @@ class ProfileView extends GetView<ProfileController> {
     required String label,
   }) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            value,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
           ),
         ),
         const SizedBox(height: 2),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.white.withValues(alpha: 0.7),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.white.withValues(alpha: 0.7),
+            ),
           ),
         ),
       ],
@@ -1010,14 +1034,20 @@ class _MinimalPatternPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    // Ensure size is valid
+    if (size.width <= 0 || size.height <= 0) return;
+    
     final paint = Paint()
       ..color = color
       ..style = PaintingStyle.fill;
 
-    // Draw subtle dots pattern
+    // Draw subtle dots pattern with bounds checking
     const double spacing = 30;
-    for (double x = 0; x < size.width; x += spacing) {
-      for (double y = 0; y < size.height; y += spacing) {
+    final maxWidth = size.width.isFinite ? size.width : 500;
+    final maxHeight = size.height.isFinite ? size.height : 500;
+    
+    for (double x = 0; x < maxWidth; x += spacing) {
+      for (double y = 0; y < maxHeight; y += spacing) {
         canvas.drawCircle(Offset(x, y), 1, paint);
       }
     }
