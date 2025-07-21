@@ -6,6 +6,7 @@ import 'package:record/record.dart';
 import '../../routes/app_pages.dart';
 import '../../services/profile_service.dart';
 import '../../services/storage_service.dart';
+import '../../services/supabase_auth_service.dart';
 import '../../utils/voice_separation_test.dart';
 
 class ProfileController extends GetxController {
@@ -14,6 +15,9 @@ class ProfileController extends GetxController {
   final isLoading = true.obs;
   final isEditing = false.obs;
   final isSaving = false.obs;
+  
+  // Auth service
+  final SupabaseAuthService _authService = Get.find<SupabaseAuthService>();
   
   // Meeting statistics
   final totalMeetings = 0.obs;
@@ -70,7 +74,27 @@ class ProfileController extends GetxController {
   Future<void> loadProfile() async {
     try {
       isLoading.value = true;
+      
+      // Get current user from Supabase
+      final currentUser = _authService.currentUser.value;
+      
+      // Load profile from storage
       final profile = await ProfileService.loadProfile();
+      
+      // Update with real user data from Supabase
+      if (currentUser != null) {
+        profile['email'] = currentUser.email ?? '';
+        profile['id'] = currentUser.id;
+        
+        // Get display name from user metadata or email
+        final metadata = currentUser.userMetadata;
+        if (metadata != null && metadata['display_name'] != null) {
+          profile['name'] = metadata['display_name'];
+        } else if (profile['name']?.isEmpty ?? true) {
+          // Use email prefix as default name
+          profile['name'] = currentUser.email?.split('@').first ?? 'User';
+        }
+      }
       
       // Ensure meetingPreferences exists with all default values
       if (profile['meetingPreferences'] == null) {
@@ -223,6 +247,18 @@ class ProfileController extends GetxController {
       profileData['department'] = departmentController.text.trim();
       profileData['bio'] = bioController.text.trim();
       
+      // Update user metadata in Supabase
+      if (_authService.isAuthenticated) {
+        await _authService.updateUserMetadata({
+          'display_name': nameController.text.trim(),
+          'phone': phoneController.text.trim(),
+          'company': companyController.text.trim(),
+          'position': positionController.text.trim(),
+          'department': departmentController.text.trim(),
+          'bio': bioController.text.trim(),
+        });
+      }
+      
       // Save to storage
       final success = await ProfileService.saveProfile(profileData);
       
@@ -336,6 +372,9 @@ class ProfileController extends GetxController {
         ),
         barrierDismissible: false,
       );
+      
+      // Sign out from Supabase
+      await _authService.signOut();
       
       // Clear profile data
       final cleared = await ProfileService.clearProfile();

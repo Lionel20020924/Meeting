@@ -16,6 +16,7 @@ import '../modules/profile/profile_binding.dart';
 import '../modules/profile/profile_view.dart';
 import '../modules/post_recording/post_recording_binding.dart';
 import '../modules/post_recording/post_recording_view.dart';
+import '../middleware/auth_middleware.dart';
 
 part 'app_routes.dart';
 
@@ -29,6 +30,7 @@ class AppPages {
       name: _Paths.HOME,
       page: () => const HomeView(),
       binding: HomeBinding(),
+      middlewares: [AuthMiddleware()],
     ),
     GetPage(
       name: _Paths.LOGIN,
@@ -39,31 +41,37 @@ class AppPages {
       name: _Paths.MEETINGS,
       page: () => const MeetingsView(),
       binding: MeetingsBinding(),
+      middlewares: [AuthMiddleware()],
     ),
     GetPage(
       name: _Paths.RECORD,
       page: () => const RecordView(),
       binding: RecordBinding(),
+      middlewares: [AuthMiddleware()],
     ),
     GetPage(
       name: _Paths.MEETING_DETAIL,
       page: () => const MeetingDetailView(),
       binding: MeetingDetailBinding(),
+      middlewares: [AuthMiddleware()],
     ),
     GetPage(
       name: _Paths.SUMMARY,
       page: () => const SummaryView(),
       binding: SummaryBinding(),
+      middlewares: [AuthMiddleware()],
     ),
     GetPage(
       name: _Paths.PROFILE,
       page: () => const ProfileView(),
       binding: ProfileBinding(),
+      middlewares: [AuthMiddleware()],
     ),
     GetPage(
       name: _Paths.POST_RECORDING,
       page: () => const PostRecordingView(),
       binding: PostRecordingBinding(),
+      middlewares: [AuthMiddleware()],
     ),
   ];
 }

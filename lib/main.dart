@@ -1,12 +1,39 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app/routes/app_pages.dart';
+import 'app/services/supabase_auth_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
+  
+  // Initialize Supabase if credentials are provided
+  final supabaseUrl = dotenv.env['SUPABASE_URL'];
+  final supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY'];
+  
+  if (supabaseUrl != null && supabaseAnonKey != null && 
+      supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty) {
+    try {
+      await Supabase.initialize(
+        url: supabaseUrl,
+        anonKey: supabaseAnonKey,
+      );
+      if (Get.isLogEnable) {
+        Get.log('Supabase initialized successfully');
+      }
+      
+      // Initialize auth service
+      Get.put(SupabaseAuthService(), permanent: true);
+    } catch (e) {
+      if (Get.isLogEnable) {
+        Get.log('Failed to initialize Supabase: $e');
+      }
+    }
+  }
+  
   runApp(const MyApp());
 }
 

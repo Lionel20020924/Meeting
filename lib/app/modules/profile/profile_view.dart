@@ -70,10 +70,20 @@ class ProfileView extends GetView<ProfileController> {
                                 ],
                               ),
                               child: Center(
-                                child: Icon(
-                                  Icons.mic_rounded,
-                                  size: 38,
-                                  color: Theme.of(context).colorScheme.primary,
+                                child: Obx(() => controller.userInitials.isNotEmpty
+                                  ? Text(
+                                      controller.userInitials,
+                                      style: TextStyle(
+                                        fontSize: 32,
+                                        fontWeight: FontWeight.w600,
+                                        color: controller.avatarColor,
+                                      ),
+                                    )
+                                  : Icon(
+                                      Icons.person_rounded,
+                                      size: 38,
+                                      color: Theme.of(context).colorScheme.primary,
+                                    ),
                                 ),
                               ),
                             ),
@@ -82,15 +92,15 @@ class ProfileView extends GetView<ProfileController> {
                             Flexible(
                               child: FittedBox(
                                 fit: BoxFit.scaleDown,
-                                child: const Text(
-                                  'Meeting Professional',
-                                  style: TextStyle(
+                                child: Obx(() => Text(
+                                  controller.userName.isNotEmpty ? controller.userName : 'User',
+                                  style: const TextStyle(
                                     fontSize: 24,
                                     fontWeight: FontWeight.w600,
                                     color: Colors.white,
                                     letterSpacing: -0.5,
                                   ),
-                                ),
+                                )),
                               ),
                             ),
                             const SizedBox(height: 4),
@@ -100,14 +110,14 @@ class ProfileView extends GetView<ProfileController> {
                                 color: Colors.white.withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(20),
                               ),
-                              child: const Text(
-                                'Premium User',
-                                style: TextStyle(
+                              child: Obx(() => Text(
+                                controller.userEmail.isNotEmpty ? controller.userEmail : 'user@example.com',
+                                style: const TextStyle(
                                   fontSize: 13,
                                   color: Colors.white,
                                   fontWeight: FontWeight.w500,
                                 ),
-                              ),
+                              )),
                             ),
                             const SizedBox(height: 16),
                             // Minimalist Stats

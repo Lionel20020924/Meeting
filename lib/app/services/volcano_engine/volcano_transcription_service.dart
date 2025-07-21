@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import '../audio_upload_service.dart';
+import '../audio_storage_interface.dart';
+import '../audio_storage_factory.dart';
 import 'asr_service.dart';
 import '../doubao_ai_service.dart';
 import '../profile_service.dart';
@@ -43,12 +44,12 @@ class VolcanoTranscriptionSegment {
 
 /// 火山引擎转录服务实现
 class VolcanoTranscriptionService {
-  late final AudioUploadService _uploadService;
+  late final AudioStorageInterface _storageService;
   late final VolcanoASRService _asrService;
   
   VolcanoTranscriptionService() {
     // 初始化服务
-    _uploadService = AudioUploadService();
+    _storageService = AudioStorageFactory.getInstance();
     
     _asrService = VolcanoASRService(
       appKey: dotenv.env['VOLCANO_APP_KEY'] ?? '',
@@ -68,7 +69,7 @@ class VolcanoTranscriptionService {
 
   /// 上传音频文件到TOS并返回URL
   Future<String> uploadAudioFile(File audioFile) async {
-    return await _uploadService.uploadAudioFile(audioFile);
+    return await _storageService.uploadAudioFile(audioFile);
   }
 
   /// 执行音频转录
@@ -85,7 +86,7 @@ class VolcanoTranscriptionService {
         Get.log('Uploading audio file to TOS...');
       }
       
-      final audioUrl = await _uploadService.uploadAudioFile(audioFile);
+      final audioUrl = await _storageService.uploadAudioFile(audioFile, meetingId: meetingTitle);
       
       if (Get.isLogEnable) {
         Get.log('Audio uploaded successfully. Starting ASR...');
@@ -257,7 +258,7 @@ class VolcanoTranscriptionService {
       // 7. 清理：删除 TOS 中的音频文件（可选）
       try {
         final objectKey = audioUrl.split('/').last;
-        await _uploadService.deleteAudioFile(objectKey);
+        await _storageService.deleteAudioFile(objectKey);
       } catch (e) {
         // 忽略删除错误
       }
@@ -337,6 +338,6 @@ class VolcanoTranscriptionService {
   
   /// 清理资源
   void dispose() {
-    _uploadService.dispose();
+    _storageService.dispose();
   }
 }

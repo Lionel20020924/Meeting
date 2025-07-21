@@ -6,15 +6,17 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:get/get.dart';
 import 'package:minio/minio.dart';
 import 'package:path/path.dart' as path;
+import 'audio_storage_interface.dart';
 
 /// 音频上传服务 - 使用 MinIO 客户端连接火山引擎 TOS
-class AudioUploadService {
+class AudioUploadService implements AudioStorageInterface {
   late final Minio _minioClient;
   final String bucketName;
   final String region;
   
   // 上传进度流控制器
   final _uploadProgressController = StreamController<double>.broadcast();
+  @override
   Stream<double> get uploadProgress => _uploadProgressController.stream;
   
   AudioUploadService() : 
@@ -128,7 +130,8 @@ class AudioUploadService {
   }
   
   /// 上传音频文件到 TOS
-  Future<String> uploadAudioFile(File audioFile) async {
+  @override
+  Future<String> uploadAudioFile(File audioFile, {String? meetingId}) async {
     try {
       // 生成对象键
       final timestamp = DateTime.now().millisecondsSinceEpoch;
@@ -220,6 +223,7 @@ class AudioUploadService {
   }
   
   /// 生成预签名 URL
+  @override
   Future<String> generatePresignedUrl(String objectKey, {int expires = 3600}) async {
     try {
       // 使用 MinIO 生成预签名 URL
@@ -248,6 +252,7 @@ class AudioUploadService {
   }
   
   /// 删除音频文件
+  @override
   Future<void> deleteAudioFile(String objectKey) async {
     try {
       await _minioClient.removeObject(bucketName, objectKey);
@@ -264,6 +269,7 @@ class AudioUploadService {
   }
   
   /// 检查文件是否存在
+  @override
   Future<bool> fileExists(String objectKey) async {
     try {
       await _minioClient.statObject(bucketName, objectKey);
@@ -293,6 +299,7 @@ class AudioUploadService {
   }
   
   /// 清理资源
+  @override
   void dispose() {
     _uploadProgressController.close();
   }

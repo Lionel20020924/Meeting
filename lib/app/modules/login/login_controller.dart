@@ -1,22 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'dart:async';
 
 import '../../routes/app_pages.dart';
+import '../../services/supabase_auth_service.dart';
 
 class LoginController extends GetxController {
   final formKey = GlobalKey<FormState>();
   final emailController = TextEditingController();
-  final passwordController = TextEditingController();
+  final otpController = TextEditingController();
   
-  final showPassword = false.obs;
-  final rememberMe = false.obs;
   final isLoading = false.obs;
+  final otpSent = false.obs;
+  final countdown = 0.obs;
+  Timer? _countdownTimer;
   
   // Validation states
   final emailError = ''.obs;
-  final passwordError = ''.obs;
+  final otpError = ''.obs;
   final isEmailValid = false.obs;
-  final isPasswordValid = false.obs;
+  final isOtpValid = false.obs;
+  
+  // Auth service
+  final SupabaseAuthService _authService = Get.put(SupabaseAuthService());
 
   @override
   void onInit() {
@@ -25,93 +31,73 @@ class LoginController extends GetxController {
     // Clear any existing state first
     _clearState();
     
-    // Load saved email if remember me was checked
-    loadSavedCredentials();
-    
     // Add listeners for real-time validation
     emailController.addListener(_validateEmail);
-    passwordController.addListener(_validatePassword);
+    otpController.addListener(_validateOtp);
   }
   
   void _clearState() {
     // Reset all states to initial values
-    showPassword.value = false;
-    rememberMe.value = false;
     isLoading.value = false;
+    otpSent.value = false;
+    countdown.value = 0;
     emailError.value = '';
-    passwordError.value = '';
+    otpError.value = '';
     isEmailValid.value = false;
-    isPasswordValid.value = false;
+    isOtpValid.value = false;
     
     // Clear text controllers
     emailController.clear();
-    passwordController.clear();
+    otpController.clear();
+    
+    // Cancel countdown timer
+    _countdownTimer?.cancel();
   }
 
   @override
   void onClose() {
     emailController.dispose();
-    passwordController.dispose();
+    otpController.dispose();
+    _countdownTimer?.cancel();
     super.onClose();
   }
 
-  void togglePasswordVisibility() {
-    showPassword.value = !showPassword.value;
+  void _startCountdown() {
+    countdown.value = 60;
+    _countdownTimer?.cancel();
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (countdown.value > 0) {
+        countdown.value--;
+      } else {
+        timer.cancel();
+      }
+    });
   }
 
-  void loadSavedCredentials() {
-    // TODO: Load saved credentials from local storage
-    // Example: emailController.text = savedEmail;
-  }
-
-  void forgotPassword() {
-    Get.snackbar(
-      'Forgot Password',
-      'Password reset link will be sent to your email',
-      snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: Get.theme.colorScheme.primary,
-      colorText: Colors.white,
-      duration: const Duration(seconds: 3),
-    );
-  }
-
-  void socialLogin(String provider) {
-    Get.snackbar(
-      'Social Login',
-      'Login with $provider will be implemented',
-      snackPosition: SnackPosition.BOTTOM,
-    );
-  }
-
-  void goToSignUp() {
-    Get.snackbar(
-      'Sign Up',
-      'Sign up functionality will be implemented',
-      snackPosition: SnackPosition.BOTTOM,
-    );
-  }
-
-  Future<void> login() async {
-    if (!validateForm()) {
+  Future<void> sendOtp() async {
+    if (!isEmailValid.value) {
+      emailError.value = 'Please enter a valid email';
       return;
     }
-
-    isLoading.value = true;
     
+    isLoading.value = true;
     try {
-      // TODO: Implement actual login logic
-      await Future.delayed(const Duration(seconds: 2));
+      await _authService.sendOTP(emailController.text.trim());
+      otpSent.value = true;
+      _startCountdown();
       
-      // Save credentials if remember me is checked
-      if (rememberMe.value) {
-        // TODO: Save credentials to local storage
-      }
-      
-      Get.offAllNamed(Routes.HOME);
+      Get.snackbar(
+        'Verification Code Sent',
+        'Please check your email for the verification code',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Get.theme.colorScheme.primary,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 3),
+      );
     } catch (e) {
       Get.snackbar(
-        'Login Failed',
-        'Invalid email or password',
+        'Error',
+        e.toString().replaceAll('Exception: ', ''),
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red,
         colorText: Colors.white,
@@ -121,23 +107,56 @@ class LoginController extends GetxController {
     }
   }
 
+  Future<void> verifyOtp() async {
+    if (!isOtpValid.value) {
+      otpError.value = 'Please enter a valid 6-digit code';
+      return;
+    }
+    
+    isLoading.value = true;
+    try {
+      final response = await _authService.verifyOTP(
+        email: emailController.text.trim(),
+        token: otpController.text.trim(),
+      );
+      
+      if (response.user != null) {
+        Get.offAllNamed(Routes.HOME);
+      }
+    } catch (e) {
+      otpError.value = 'Invalid verification code';
+      Get.snackbar(
+        'Verification Failed',
+        'The verification code is invalid or expired',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> login() async {
+    if (!otpSent.value) {
+      await sendOtp();
+    } else {
+      await verifyOtp();
+    }
+  }
+  
+  void resendOtp() {
+    if (countdown.value == 0) {
+      sendOtp();
+    }
+  }
+
   void quickLogin() {
-    // Fill in test credentials
-    emailController.text = 'test@example.com';
-    passwordController.text = 'password123';
-    
-    // Show quick message
-    Get.snackbar(
-      'Debug Mode',
-      'Using test credentials',
-      snackPosition: SnackPosition.BOTTOM,
-      duration: const Duration(seconds: 1),
-    );
-    
-    // Perform login after a short delay
-    Future.delayed(const Duration(milliseconds: 500), () {
-      Get.offAllNamed(Routes.HOME);
-    });
+    // For debug purposes, skip authentication
+    if (Get.isLogEnable) {
+      Get.log('Quick login - skipping authentication');
+    }
+    Get.offAllNamed(Routes.HOME);
   }
   
   // Validation methods
@@ -155,31 +174,33 @@ class LoginController extends GetxController {
     }
   }
   
-  void _validatePassword() {
-    final password = passwordController.text;
-    if (password.isEmpty) {
-      passwordError.value = '';
-      isPasswordValid.value = false;
-    } else if (password.length < 6) {
-      passwordError.value = 'Password must be at least 6 characters';
-      isPasswordValid.value = false;
+  void _validateOtp() {
+    final otp = otpController.text;
+    if (otp.isEmpty) {
+      otpError.value = '';
+      isOtpValid.value = false;
+    } else if (otp.length != 6 || !RegExp(r'^[0-9]+$').hasMatch(otp)) {
+      otpError.value = 'Please enter a valid 6-digit code';
+      isOtpValid.value = false;
     } else {
-      passwordError.value = '';
-      isPasswordValid.value = true;
+      otpError.value = '';
+      isOtpValid.value = true;
     }
   }
   
   bool validateForm() {
-    _validateEmail();
-    _validatePassword();
-    
-    if (emailController.text.isEmpty) {
-      emailError.value = 'Email is required';
+    if (!otpSent.value) {
+      _validateEmail();
+      if (emailController.text.isEmpty) {
+        emailError.value = 'Email is required';
+      }
+      return isEmailValid.value;
+    } else {
+      _validateOtp();
+      if (otpController.text.isEmpty) {
+        otpError.value = 'Verification code is required';
+      }
+      return isOtpValid.value;
     }
-    if (passwordController.text.isEmpty) {
-      passwordError.value = 'Password is required';
-    }
-    
-    return isEmailValid.value && isPasswordValid.value;
   }
 }

@@ -73,6 +73,9 @@ dependencies:
   
   # MinIO client for S3-compatible storage
   minio: ^3.5.7
+  
+  # Supabase for authentication, database, and storage
+  supabase_flutter: ^2.6.0
 
 dev_dependencies:
   flutter_test:

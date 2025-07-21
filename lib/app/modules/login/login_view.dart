@@ -166,130 +166,119 @@ class LoginView extends GetView<LoginController> {
           
           const SizedBox(height: 20),
           
-          // Password Field
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Password',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[700],
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Obx(() => TextFormField(
-                controller: controller.passwordController,
-                obscureText: !controller.showPassword.value,
-                textInputAction: TextInputAction.done,
-                onFieldSubmitted: (_) => controller.login(),
-                style: const TextStyle(fontSize: 16),
-                decoration: InputDecoration(
-                  hintText: '••••••',
-                  hintStyle: TextStyle(
-                    color: Colors.grey[400],
-                    letterSpacing: 2,
-                  ),
-                  prefixIcon: Icon(
-                    Icons.lock_outline,
-                    color: Colors.grey[600],
-                  ),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      controller.showPassword.value
-                          ? Icons.visibility_off_outlined
-                          : Icons.visibility_outlined,
-                      color: Colors.grey[600],
+          // OTP Field (shown when OTP is sent)
+          Obx(() => controller.otpSent.value
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Verification Code',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[700],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        if (controller.countdown.value > 0)
+                          Text(
+                            'Resend in ${controller.countdown.value}s',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                          )
+                        else
+                          TextButton(
+                            onPressed: controller.resendOtp,
+                            style: TextButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              minimumSize: const Size(50, 30),
+                            ),
+                            child: const Text(
+                              'Resend',
+                              style: TextStyle(
+                                color: Color(0xFF6366F1),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
-                    onPressed: controller.togglePasswordVisibility,
-                  ),
-                  filled: true,
-                  fillColor: Colors.grey[50],
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(
-                      color: controller.passwordError.value.isNotEmpty 
-                        ? Colors.red.withValues(alpha: 0.5)
-                        : Colors.grey[200]!,
-                      width: 1,
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: controller.otpController,
+                      keyboardType: TextInputType.number,
+                      textInputAction: TextInputAction.done,
+                      maxLength: 6,
+                      onFieldSubmitted: (_) => controller.verifyOtp(),
+                      style: const TextStyle(
+                        fontSize: 20,
+                        letterSpacing: 8,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      textAlign: TextAlign.center,
+                      decoration: InputDecoration(
+                        hintText: '000000',
+                        hintStyle: TextStyle(
+                          color: Colors.grey[400],
+                          letterSpacing: 8,
+                        ),
+                        prefixIcon: Icon(
+                          Icons.shield_outlined,
+                          color: Colors.grey[600],
+                        ),
+                        filled: true,
+                        fillColor: Colors.grey[50],
+                        counterText: '',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: controller.otpError.value.isNotEmpty 
+                              ? Colors.red.withValues(alpha: 0.5)
+                              : Colors.grey[200]!,
+                            width: 1,
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(
+                            color: Color(0xFF6366F1),
+                            width: 1.5,
+                          ),
+                        ),
+                        errorText: controller.otpError.value.isEmpty 
+                          ? null 
+                          : controller.otpError.value,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 16,
+                        ),
+                      ),
                     ),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(
-                      color: Color(0xFF6366F1),
-                      width: 1.5,
+                    const SizedBox(height: 8),
+                    Text(
+                      'Please enter the 6-digit code sent to your email',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
                     ),
-                  ),
-                  errorText: controller.passwordError.value.isEmpty 
-                    ? null 
-                    : controller.passwordError.value,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 16,
-                  ),
-                ),
-              )),
-            ],
+                  ],
+                )
+              : const SizedBox.shrink(),
           ),
           
           const SizedBox(height: 20),
           
-          // Remember me and Forgot password
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // Remember me
-              Row(
-                children: [
-                  Obx(() => SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: Checkbox(
-                      value: controller.rememberMe.value,
-                      onChanged: (value) => 
-                          controller.rememberMe.value = value ?? false,
-                      activeColor: const Color(0xFF6366F1),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                  )),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Remember me',
-                    style: TextStyle(
-                      color: Colors.grey[700],
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
-              
-              // Forgot password
-              TextButton(
-                onPressed: controller.forgotPassword,
-                style: TextButton.styleFrom(
-                  padding: EdgeInsets.zero,
-                ),
-                child: const Text(
-                  'Forgot password?',
-                  style: TextStyle(
-                    color: Color(0xFF6366F1),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          
-          const SizedBox(height: 30),
+          const SizedBox(height: 10),
           
           // Login Button
           Obx(() => SizedBox(
@@ -314,9 +303,9 @@ class LoginView extends GetView<LoginController> {
                         valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                       ),
                     )
-                  : const Text(
-                      'Login',
-                      style: TextStyle(
+                  : Text(
+                      controller.otpSent.value ? 'Verify' : 'Send Code',
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
                         color: Colors.white,
@@ -327,33 +316,18 @@ class LoginView extends GetView<LoginController> {
           
           const SizedBox(height: 24),
           
-          // Sign up section
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                "Don't have an account?",
-                style: TextStyle(
-                  color: Colors.grey[600],
-                  fontSize: 14,
-                ),
+          // Info text
+          Center(
+            child: Text(
+              controller.otpSent.value 
+                ? 'Check your email for the verification code'
+                : 'We\'ll send you a verification code to login',
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 13,
               ),
-              const SizedBox(width: 4),
-              TextButton(
-                onPressed: controller.goToSignUp,
-                style: TextButton.styleFrom(
-                  padding: EdgeInsets.zero,
-                ),
-                child: const Text(
-                  'Sign up',
-                  style: TextStyle(
-                    color: Color(0xFF6366F1),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
+              textAlign: TextAlign.center,
+            ),
           ),
           
           // Dev Quick Login (optional)
