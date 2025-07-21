@@ -188,17 +188,36 @@ class VolcanoTranscriptionService {
         String? currentSpeaker;
         List<String> formattedLines = [];
         
+        if (Get.isLogEnable) {
+          Get.log('=== Generating Formatted Text with Speaker Labels ===');
+          Get.log('Total segments: ${allSegments.length}');
+        }
+        
         for (var segment in allSegments) {
           final speakerId = segment.speakerId;
+          if (Get.isLogEnable && speakerId != null) {
+            Get.log('Segment speaker: $speakerId, text: ${segment.text.substring(0, segment.text.length > 30 ? 30 : segment.text.length)}...');
+          }
+          
           if (speakerId != null && speakerId != currentSpeaker) {
             // 说话人改变，添加新的说话人标识
             currentSpeaker = speakerId;
-            formattedLines.add('\n${_formatSpeakerName(speakerId)}：');
+            final speakerLabel = _formatSpeakerName(speakerId);
+            formattedLines.add('\n$speakerLabel：');
+            
+            if (Get.isLogEnable) {
+              Get.log('Added speaker label: $speakerLabel');
+            }
           }
           formattedLines.add(segment.text);
         }
         
         formattedText = formattedLines.join(' ').trim();
+        
+        if (Get.isLogEnable) {
+          Get.log('Formatted text length: ${formattedText.length}');
+          Get.log('Formatted text preview: ${formattedText.substring(0, formattedText.length > 200 ? 200 : formattedText.length)}...');
+        }
       }
       
       if (Get.isLogEnable) {
@@ -268,13 +287,25 @@ class VolcanoTranscriptionService {
       return [];
     }
     
-    return asrSegments.map((segment) => VolcanoTranscriptionSegment(
-      text: segment.text,
-      startTime: segment.startTime,
-      endTime: segment.endTime,
-      speakerId: speakerIdOverride ?? segment.speakerId,
-      confidence: segment.confidence,
-    )).toList();
+    if (Get.isLogEnable) {
+      Get.log('Converting ${asrSegments.length} ASR segments');
+    }
+    
+    return asrSegments.map((segment) {
+      final speakerId = speakerIdOverride ?? segment.speakerId;
+      
+      if (Get.isLogEnable && speakerId != null) {
+        Get.log('Converting segment with speaker: $speakerId');
+      }
+      
+      return VolcanoTranscriptionSegment(
+        text: segment.text,
+        startTime: segment.startTime,
+        endTime: segment.endTime,
+        speakerId: speakerId,
+        confidence: segment.confidence,
+      );
+    }).toList();
   }
   
   /// 格式化说话人名称

@@ -488,9 +488,19 @@ class ASRSegment {
       Get.log('Extracted text: $text');
     }
     
-    // 提取说话人ID - 火山引擎返回的speaker_id字段
+    // 提取说话人ID - 火山引擎返回的speaker在additions字段中
     String? speakerId;
-    if (utterance.containsKey('speaker_id')) {
+    if (utterance.containsKey('additions') && utterance['additions'] is Map) {
+      final additions = utterance['additions'] as Map<String, dynamic>;
+      if (additions.containsKey('speaker')) {
+        speakerId = additions['speaker']?.toString();
+        if (Get.isLogEnable) {
+          Get.log('Extracted speaker ID: $speakerId from additions');
+        }
+      }
+    }
+    // Fallback to speaker_id field if additions doesn't have speaker
+    if (speakerId == null && utterance.containsKey('speaker_id')) {
       speakerId = utterance['speaker_id']?.toString();
     }
     
