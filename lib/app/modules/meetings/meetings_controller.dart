@@ -3,12 +3,18 @@ import 'package:get/get.dart';
 
 import '../../routes/app_pages.dart';
 import '../../services/storage_service.dart';
+import '../../services/supabase_sync_service.dart';
+import '../../services/supabase_auth_service.dart';
 
 class MeetingsController extends GetxController {
   final meetings = <Map<String, dynamic>>[].obs;
   final filteredMeetings = <Map<String, dynamic>>[].obs;
   final isLoading = false.obs;
   final searchQuery = ''.obs;
+  
+  // Sync service
+  SupabaseSyncService? _syncService;
+  SupabaseAuthService? _authService;
   
   // Selection mode
   final isSelectionMode = false.obs;
@@ -23,6 +29,17 @@ class MeetingsController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    
+    // Initialize services if available
+    try {
+      _authService = Get.find<SupabaseAuthService>();
+      _syncService = Get.put(SupabaseSyncService());
+    } catch (e) {
+      if (Get.isLogEnable) {
+        Get.log('Sync services not available: $e');
+      }
+    }
+    
     loadMeetings();
   }
 
@@ -35,6 +52,9 @@ class MeetingsController extends GetxController {
     }
     // Reload meetings when the controller is ready (useful when navigating back)
     loadMeetings();
+    
+    // Check for pending sync
+    _checkPendingSync();
   }
   
   @override
@@ -83,7 +103,55 @@ class MeetingsController extends GetxController {
 
   Future<void> refreshMeetings() async {
     await loadMeetings();
+    
+    // Also trigger sync if authenticated
+    if (_authService?.isAuthenticated ?? false) {
+      await syncMeetings();
+    }
   }
+  
+  /// Sync meetings with Supabase
+  Future<void> syncMeetings() async {
+    if (_syncService == null || !(_authService?.isAuthenticated ?? false)) {
+      Get.snackbar(
+        'Sync Unavailable',
+        'Please login to sync your meetings',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return;
+    }
+    
+    try {
+      await _syncService!.performFullSync();
+      // Reload meetings after sync
+      await loadMeetings();
+    } catch (e) {
+      if (Get.isLogEnable) {
+        Get.log('Sync error: $e');
+      }
+    }
+  }
+  
+  /// Check for pending sync
+  Future<void> _checkPendingSync() async {
+    if (_syncService != null && (_authService?.isAuthenticated ?? false)) {
+      await _syncService!.getPendingSyncCount();
+    }
+  }
+  
+  /// Get sync status for a meeting
+  String getMeetingSyncStatus(String meetingId) {
+    return _syncService?.getMeetingSyncStatus(meetingId) ?? 'unknown';
+  }
+  
+  /// Check if sync is available
+  bool get isSyncAvailable => _syncService != null && (_authService?.isAuthenticated ?? false);
+  
+  /// Get sync service reactive properties
+  RxBool get isSyncing => _syncService?.isSyncing ?? false.obs;
+  RxString get lastSyncTime => _syncService?.lastSyncTime ?? ''.obs;
+  RxInt get pendingSyncCount => _syncService?.pendingSyncCount ?? 0.obs;
+  String get formattedLastSyncTime => _syncService?.formattedLastSyncTime ?? 'Never';
 
   bool isToday(String dateString) {
     try {
@@ -240,6 +308,19 @@ class MeetingsController extends GetxController {
 
         // Delete from storage (this also deletes the audio file)
         final meetingId = meeting['id'].toString(); // Ensure consistent ID type
+        
+        // Delete from cloud if sync is available
+        if (_syncService != null && (_authService?.isAuthenticated ?? false)) {
+          try {
+            await _syncService!.deleteMeeting(meetingId);
+          } catch (e) {
+            // Log error but continue with local deletion
+            if (Get.isLogEnable) {
+              Get.log('Cloud deletion failed: $e');
+            }
+          }
+        }
+        
         await StorageService.deleteMeeting(meetingId);
 
         // Remove from local list and refresh filtered list
@@ -355,6 +436,18 @@ class MeetingsController extends GetxController {
         final List<String> failedDeletions = [];
         for (final meetingId in selectedMeetings) {
           try {
+            // Delete from cloud if sync is available
+            if (_syncService != null && (_authService?.isAuthenticated ?? false)) {
+              try {
+                await _syncService!.deleteMeeting(meetingId);
+              } catch (e) {
+                // Log error but continue with local deletion
+                if (Get.isLogEnable) {
+                  Get.log('Cloud deletion failed for $meetingId: $e');
+                }
+              }
+            }
+            
             await StorageService.deleteMeeting(meetingId);
             // Remove from local list immediately after successful deletion
             meetings.removeWhere((m) => m['id'].toString() == meetingId);

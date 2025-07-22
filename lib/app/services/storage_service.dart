@@ -63,6 +63,10 @@ class StorageService {
       // Load existing meetings
       List<Map<String, dynamic>> meetings = await loadMeetings();
       
+      // Add sync metadata
+      meeting['localCreatedAt'] = DateTime.now().toIso8601String();
+      meeting['syncStatus'] = 'pending';
+      
       // Add new meeting
       meetings.insert(0, meeting);
       
@@ -144,6 +148,12 @@ class StorageService {
       
       final index = meetings.indexWhere((m) => m['id'] == updatedMeeting['id']);
       if (index != -1) {
+        // Update sync metadata
+        updatedMeeting['localUpdatedAt'] = DateTime.now().toIso8601String();
+        if (updatedMeeting['syncStatus'] == 'synced') {
+          updatedMeeting['syncStatus'] = 'pending';
+        }
+        
         meetings[index] = updatedMeeting;
         
         final meetingsDir = await _meetingsDirectory;
@@ -170,6 +180,39 @@ class StorageService {
       return totalSize;
     } catch (e) {
       return 0;
+    }
+  }
+  
+  /// Update sync status for a meeting
+  static Future<void> updateMeetingSyncStatus(String meetingId, String syncStatus) async {
+    try {
+      List<Map<String, dynamic>> meetings = await loadMeetings();
+      
+      final index = meetings.indexWhere((m) => m['id'].toString() == meetingId);
+      if (index != -1) {
+        meetings[index]['syncStatus'] = syncStatus;
+        meetings[index]['lastSyncedAt'] = DateTime.now().toIso8601String();
+        
+        final meetingsDir = await _meetingsDirectory;
+        final file = File('${meetingsDir.path}/$_meetingsFile');
+        await file.writeAsString(jsonEncode(meetings));
+      }
+    } catch (e) {
+      // Don't throw, just log the error silently
+    }
+  }
+  
+  /// Get meetings that need syncing
+  static Future<List<Map<String, dynamic>>> getMeetingsNeedingSync() async {
+    try {
+      final meetings = await loadMeetings();
+      return meetings.where((m) => 
+        m['syncStatus'] == null || 
+        m['syncStatus'] == 'pending' || 
+        m['syncStatus'] == 'error'
+      ).toList();
+    } catch (e) {
+      return [];
     }
   }
   
